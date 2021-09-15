@@ -12,20 +12,25 @@ import retrofit2.http.Query
 
 
 interface DAuthApi {
+    @GET(ApiRouteConstants.AUTHORIZE_ROUTE)
+    suspend fun authorize(@Query("client_id") client_id:String,
+                          @Query("redirect_uri") redirect_uri:String,
+                          @Query("response_type") response_type:String,
+                          @Query("grant_type") grant_type:String,
+                          @Query("state") state:String,
+                          @Query("scope") scope:String,
+                          @Query("nonce") nonce:String): AuthorizationResponse
 
+    @POST(ApiRouteConstants.TOKEN_ROUTE)
+    suspend fun getToken(@Query("client_id")client_id:String,
+                         @Query("client_secret")client_secret:String,
+                         @Query("grant_type")grant_type:String,
+                         @Query("code") code:String,
+                         @Query("redirect_uri")redirect_uri:String):Token
 
-    @GET("/authorize")
-    fun authorize(@Query("client_id") client_id:String,@Query("redirect_uri") redirect_uri:String
-                  ,@Query("response_type") response_type:String,@Query("grant_type") grant_type:String
-                   ,@Query("state") state:String,@Query("scope") scope:String,@Query("nonce") nonce:String): AuthorizationResponse
+    @GET(ApiRouteConstants.KEY_ROUTE)
+    suspend fun getKey():String
 
-    @POST("/api/oauth/token")
-    fun getToken(@Query("client_id")client_id:String,@Query("client_secret")client_secret:String,@Query("grant_type")grant_type:String
-                 ,@Query("code") code:String,@Query("redirect_uri")redirect_uri:String):Token
-
-    @GET("/api/oauth/oidc/key")
-    fun getKey():String
-
-    @POST("/api/resources/user")
-    fun getUser(@Header("Authorization") accessToken:String):User
+    @POST(ApiRouteConstants.USER_ROUTE)
+    suspend fun getUser(@Header("Authorization") accessToken:String):User
 }
