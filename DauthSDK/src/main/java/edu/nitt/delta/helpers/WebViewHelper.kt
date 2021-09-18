@@ -15,7 +15,13 @@ import edu.nitt.delta.helpers.WebViewConstants.WIDTH
 import edu.nitt.delta.interfaces.ShouldOverrideURLListener
 
 internal fun openWebViewWithUriAndCookie(context: Context, uri: Uri, shouldOverrideURLListener: ShouldOverrideURLListener, cookie: String? = null): AlertDialog {
-    val webView = WebView(context)
+
+
+    val webView = object : WebView(context){
+        override fun onCheckIsTextEditor(): Boolean {
+            return true
+        }
+    }
     val alertDialog = AlertDialog.Builder(context).create()
     webView.webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
@@ -53,6 +59,9 @@ internal fun openWebViewWithUriAndCookie(context: Context, uri: Uri, shouldOverr
     webSettings.domStorageEnabled = true
 
     webView.setPadding(0,0,0,0)
+    webView.isFocusableInTouchMode = true
+    webView.isFocusable = true
+
 
     val screenWidth = context.resources.displayMetrics.widthPixels
     val screenHeight = context.resources.displayMetrics.heightPixels
@@ -101,6 +110,6 @@ internal fun insertCookie(cookie: String?, url: String){
     }
 }
 
-fun isDarkThemeOn(context: Context): Boolean {
+internal fun isDarkThemeOn(context: Context): Boolean {
     return context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
 }
