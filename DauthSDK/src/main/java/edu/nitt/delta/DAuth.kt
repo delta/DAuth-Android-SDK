@@ -25,8 +25,12 @@ class DAuth {
     lateinit var currentUser: User
 
     // to request for authorization use authorizationRequest members as query parameters
-    fun requestAuthorization(context: Context, authorizationRequest: AuthorizationRequest, authorizationStateListener: AuthorizationState.AuthorizationStateListener){
-        if(isNetworkAvailable(context)) {
+    fun requestAuthorization(
+        context: Context,
+        authorizationRequest: AuthorizationRequest,
+        authorizationStateListener: AuthorizationState.AuthorizationStateListener
+    ) {
+        if (isNetworkAvailable(context)) {
             selectAccount(context, object : SelectAccountListener {
                 override fun onSuccess(cookie: String) {
                     val uri: Uri = Uri.Builder()
@@ -97,7 +101,7 @@ class DAuth {
                     authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.UserDismissed)
                 }
             })
-        }else{
+        } else {
             authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.NetworkError)
         }
     }
@@ -107,11 +111,11 @@ class DAuth {
         TODO("make a request and token will be obtained as response")
     }
 
-    fun getLoggedUser(): User{
+    fun getLoggedUser(): User {
         TODO("return current User")
     }
 
-    private fun selectAccount(context: Context, selectAccountListener: SelectAccountListener){
+    private fun selectAccount(context: Context, selectAccountListener: SelectAccountListener) {
 
         selectAccountFromAccountManager(context, object : SelectAccountFromAccountManagerListener {
             override fun onSelect(cookie: String) {
@@ -127,19 +131,23 @@ class DAuth {
                 val alertDialog = openWebViewWithUriAndCookie(
                     context,
                     uri,
-                    object : ShouldOverrideURLListener{
+                    object : ShouldOverrideURLListener {
                         override fun shouldLoadUrl(url: String): Boolean {
                             val uri: Uri = Uri.parse(url)
-                            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(DAuthConstants.BASE_URL)) {
+                            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(
+                                    DAuthConstants.BASE_URL
+                                )
+                            ) {
                                 selectAccountListener.onFailure()
                                 return false
                             }
-                            if (uri.path.contentEquals("/dashboard")){
+                            if (uri.path.contentEquals("/dashboard")) {
                                 selectAccountListener.onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
                                 return false
                             }
                             return true
-                        } })
+                        }
+                    })
                 alertDialog.setOnDismissListener {
                     selectAccountListener.onUserDismiss()
                 }
@@ -151,22 +159,25 @@ class DAuth {
         })
     }
 
-    private fun selectAccountFromAccountManager(context: Context, selectAccountFromAccountManagerListener: SelectAccountFromAccountManagerListener){
+    private fun selectAccountFromAccountManager(
+        context: Context,
+        selectAccountFromAccountManagerListener: SelectAccountFromAccountManagerListener
+    ) {
         selectAccountFromAccountManagerListener.onCreateNewAccount()
         //TODO("Account Selection UI for testing uncomment the previous")
     }
 
-    fun registerWithClient(){
+    fun registerWithClient() {
         TODO("To be implemented")
     }
 
     // check if accountManager already has it
-    fun checkIfUserExists(): Boolean{
+    fun checkIfUserExists(): Boolean {
         TODO("To be implemented")
     }
 
     // adds user in accountManager
-    fun addUser(){
+    fun addUser() {
         TODO("To be implemented")
     }
 }
