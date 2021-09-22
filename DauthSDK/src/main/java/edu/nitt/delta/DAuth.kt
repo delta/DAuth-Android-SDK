@@ -3,18 +3,16 @@ package edu.nitt.delta
 import android.content.Context
 import android.net.Uri
 import edu.nitt.delta.api.RetrofitInstance
-import edu.nitt.delta.models.AuthorizationErrorType
-import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
 import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
 import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
-import edu.nitt.delta.helpers.openWebViewWithUriAndCookie
+import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
 import edu.nitt.delta.interfaces.SelectAccountFromAccountManagerListener
 import edu.nitt.delta.interfaces.SelectAccountListener
-import edu.nitt.delta.interfaces.ShouldOverrideURLListener
 import edu.nitt.delta.interfaces.SignInListener
+import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.AuthorizationResponse
 import edu.nitt.delta.models.GrantType
@@ -95,40 +93,34 @@ class DAuth {
                     )
                     .appendQueryParameter("nonce", authorizationRequest.nonce)
                     .build()
-                val alertDialog = openWebViewWithUriAndCookie(
+                val alertDialog = openWebView(
                     context,
                     uri,
-                    object : ShouldOverrideURLListener {
-                        override fun shouldLoadUrl(url: String): Boolean {
-                            val uri: Uri = Uri.parse(url)
-                            if (url.startsWith(authorizationRequest.redirect_uri)) {
-                                if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
-                                    onFailure(AuthorizationErrorType.AuthorizationDenied)
-                                } else {
-                                    val authorizationResponse = AuthorizationResponse(
-                                        uri.getQueryParameter("code") ?: "",
-                                        uri.getQueryParameter("state") ?: ""
-                                    )
-                                    onSuccess(authorizationResponse)
-                                }
-                                return false
-                            }
-                            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(
-                                    BASE_URL
-                                )
-                            ) {
-                                onFailure(AuthorizationErrorType.InternalError)
-                                return false
-                            }
-                            if (uri.path == "/dashboard") {
-                                onFailure(AuthorizationErrorType.InternalError)
-                                return false
-                            }
-                            return true
-                        }
-                    },
                     cookie
-                )
+                ) { url ->
+                    val uri: Uri = Uri.parse(url)
+                    if (url.startsWith(authorizationRequest.redirect_uri)) {
+                        if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
+                            onFailure(AuthorizationErrorType.AuthorizationDenied)
+                        } else {
+                            val authorizationResponse = AuthorizationResponse(
+                                uri.getQueryParameter("code") ?: "",
+                                uri.getQueryParameter("state") ?: ""
+                            )
+                            onSuccess(authorizationResponse)
+                        }
+                        return@openWebView false
+                    }
+                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
+                        onFailure(AuthorizationErrorType.InternalError)
+                        return@openWebView false
+                    }
+                    if (uri.path == "/dashboard") {
+                        onFailure(AuthorizationErrorType.InternalError)
+                        return@openWebView false
+                    }
+                    return@openWebView true
+                }
                 alertDialog.setOnDismissListener {
                     onFailure(AuthorizationErrorType.UserDismissed)
                 }
@@ -207,26 +199,21 @@ class DAuth {
                     .authority(BASE_AUTHORITY)
                     .build()
 
-                val alertDialog = openWebViewWithUriAndCookie(
+                val alertDialog = openWebView(
                     context,
-                    uri,
-                    object : ShouldOverrideURLListener {
-                        override fun shouldLoadUrl(url: String): Boolean {
-                            val uri: Uri = Uri.parse(url)
-                            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(
-                                    DAuthConstants.BASE_URL
-                                )
-                            ) {
-                                selectAccountListener.onFailure()
-                                return false
-                            }
-                            if (uri.path.contentEquals("/dashboard")) {
-                                selectAccountListener.onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
-                                return false
-                            }
-                            return true
-                        }
-                    })
+                    uri
+                ) { url ->
+                    val uri: Uri = Uri.parse(url)
+                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
+                        selectAccountListener.onFailure()
+                        return@openWebView false
+                    }
+                    if (uri.path.contentEquals("/dashboard")) {
+                        selectAccountListener.onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
+                        return@openWebView false
+                    }
+                    return@openWebView true
+                }
                 alertDialog.setOnDismissListener {
                     selectAccountListener.onUserDismiss()
                 }
