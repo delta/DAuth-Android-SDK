@@ -10,7 +10,6 @@ import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
 import edu.nitt.delta.interfaces.SelectAccountFromAccountManagerListener
-import edu.nitt.delta.interfaces.SelectAccountListener
 import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.models.AuthorizationRequest
@@ -66,74 +65,53 @@ class DAuth {
     // to request for authorization use authorizationRequest members as query parameters
     private fun requestAuthorization(
         context: Context,
-        authorizationRequest: AuthorizationRequest,
+        authRequest: AuthorizationRequest,
         onFailure: (AuthorizationErrorType) -> Unit,
         onSuccess: (AuthorizationResponse) -> Unit
-    ) = if (isNetworkAvailable(context)) {
-        selectAccount(context, object : SelectAccountListener {
-            override fun onSuccess(cookie: String) {
-                val uri: Uri = Uri.Builder()
-                    .scheme(SCHEME)
-                    .authority(BASE_AUTHORITY)
-                    .appendPath("authorize")
-                    .appendQueryParameter("client_id", authorizationRequest.client_id)
-                    .appendQueryParameter("redirect_uri", authorizationRequest.redirect_uri)
-                    .appendQueryParameter(
-                        "response_type",
-                        authorizationRequest.response_type.toString()
+    ) = if (isNetworkAvailable(context)) selectAccount(
+        context,
+        onFailure = { onFailure(AuthorizationErrorType.InternalError) },
+        onUserDismiss = { onFailure(AuthorizationErrorType.UserDismissed) }
+    ) { cookie ->
+        val uri: Uri = Uri.Builder()
+            .scheme(SCHEME)
+            .authority(BASE_AUTHORITY)
+            .appendPath("authorize")
+            .appendQueryParameter("client_id", authRequest.client_id)
+            .appendQueryParameter("redirect_uri", authRequest.redirect_uri)
+            .appendQueryParameter("response_type", authRequest.response_type.toString())
+            .appendQueryParameter("grant_type", authRequest.grant_type.toString())
+            .appendQueryParameter("state", authRequest.state)
+            .appendQueryParameter("scopes", Scope.combineScopes(authRequest.scopes))
+            .appendQueryParameter("nonce", authRequest.nonce)
+            .build()
+        val alertDialog = openWebView(context, uri, cookie) { url ->
+            val uri: Uri = Uri.parse(url)
+            if (url.startsWith(authRequest.redirect_uri)) {
+                if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
+                    onFailure(AuthorizationErrorType.AuthorizationDenied)
+                } else {
+                    val authorizationResponse = AuthorizationResponse(
+                        uri.getQueryParameter("code") ?: "",
+                        uri.getQueryParameter("state") ?: ""
                     )
-                    .appendQueryParameter(
-                        "grant_type",
-                        authorizationRequest.grant_type.toString()
-                    )
-                    .appendQueryParameter("state", authorizationRequest.state)
-                    .appendQueryParameter(
-                        "scopes",
-                        Scope.combineScopes(authorizationRequest.scopes)
-                    )
-                    .appendQueryParameter("nonce", authorizationRequest.nonce)
-                    .build()
-                val alertDialog = openWebView(
-                    context,
-                    uri,
-                    cookie
-                ) { url ->
-                    val uri: Uri = Uri.parse(url)
-                    if (url.startsWith(authorizationRequest.redirect_uri)) {
-                        if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
-                            onFailure(AuthorizationErrorType.AuthorizationDenied)
-                        } else {
-                            val authorizationResponse = AuthorizationResponse(
-                                uri.getQueryParameter("code") ?: "",
-                                uri.getQueryParameter("state") ?: ""
-                            )
-                            onSuccess(authorizationResponse)
-                        }
-                        return@openWebView false
-                    }
-                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
-                        onFailure(AuthorizationErrorType.InternalError)
-                        return@openWebView false
-                    }
-                    if (uri.path == "/dashboard") {
-                        onFailure(AuthorizationErrorType.InternalError)
-                        return@openWebView false
-                    }
-                    return@openWebView true
+                    onSuccess(authorizationResponse)
                 }
-                alertDialog.setOnDismissListener {
-                    onFailure(AuthorizationErrorType.UserDismissed)
-                }
+                return@openWebView false
             }
-
-            override fun onFailure() {
+            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
                 onFailure(AuthorizationErrorType.InternalError)
+                return@openWebView false
             }
-
-            override fun onUserDismiss() {
-                onFailure(AuthorizationErrorType.UserDismissed)
+            if (uri.path == "/dashboard") {
+                onFailure(AuthorizationErrorType.InternalError)
+                return@openWebView false
             }
-        })
+            return@openWebView true
+        }
+        alertDialog.setOnDismissListener {
+            onFailure(AuthorizationErrorType.UserDismissed)
+        }
     } else onFailure(AuthorizationErrorType.NetworkError)
 
     //to request token use tokenRequest members as query parameters
@@ -187,10 +165,15 @@ class DAuth {
 
     fun getCurrentUser(): User? = currentUser
 
-    private fun selectAccount(context: Context, selectAccountListener: SelectAccountListener) {
+    private fun selectAccount(
+        context: Context,
+        onFailure: () -> Unit,
+        onUserDismiss: () -> Unit,
+        onSuccess: (String) -> Unit
+    ) {
         selectAccountFromAccountManager(context, object : SelectAccountFromAccountManagerListener {
             override fun onSelect(cookie: String) {
-                selectAccountListener.onSuccess(cookie)
+                onSuccess(cookie)
             }
 
             override fun onCreateNewAccount() {
@@ -199,28 +182,25 @@ class DAuth {
                     .authority(BASE_AUTHORITY)
                     .build()
 
-                val alertDialog = openWebView(
-                    context,
-                    uri
-                ) { url ->
+                val alertDialog = openWebView(context, uri) { url ->
                     val uri: Uri = Uri.parse(url)
                     if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
-                        selectAccountListener.onFailure()
+                        onFailure()
                         return@openWebView false
                     }
                     if (uri.path.contentEquals("/dashboard")) {
-                        selectAccountListener.onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
+                        onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
                         return@openWebView false
                     }
                     return@openWebView true
                 }
                 alertDialog.setOnDismissListener {
-                    selectAccountListener.onUserDismiss()
+                    onUserDismiss()
                 }
             }
 
             override fun onUserDismiss() {
-                selectAccountListener.onUserDismiss()
+                onUserDismiss()
             }
         })
     }
