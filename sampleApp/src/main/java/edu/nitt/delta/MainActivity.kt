@@ -15,7 +15,7 @@ class MainActivity : AppCompatActivity() {
         signInButton.setOnClickListener {
             dAuth.signIn(this, object : SignInListener {
                 override fun onSuccess(user: User) {
-                    println(user)
+                    println("Success: $user")
                 }
 
                 override fun onFailure(e: Exception) {

@@ -9,6 +9,7 @@ import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
+import edu.nitt.delta.helpers.toMap
 import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.models.AuthorizationRequest
@@ -30,8 +31,8 @@ class DAuth {
     fun signIn(context: Context, signInListener: SignInListener) = requestAuthorization(
         context,
         AuthorizationRequest(
-            "p~99L3MBqEeqRL2s",
-            "http://google.com",
+            "PwLV_Z_GGJSZECg1",
+            "https://www.youtube.com/",
             ResponseType.Code,
             GrantType.AuthorizationCode,
             "1ww12",
@@ -42,11 +43,11 @@ class DAuth {
     ) { authResponse ->
         fetchToken(
             TokenRequest(
-                client_id = "p~99L3MBqEeqRL2s",
-                client_secret = "dFXPJex-uV7I3P9flDni8xR4GTpFcE8D",
+                client_id = "PwLV_Z_GGJSZECg1",
+                client_secret = "3LSlIeFSbaiTJB3ptVrrE1OdkRVUZFzU",
                 grant_type = GrantType.AuthorizationCode.toString(),
                 code = authResponse.authorizationCode,
-                redirect_uri = "http://google.com"
+                redirect_uri = "https://www.youtube.com/"
             ),
             onFailure = { e -> signInListener.onFailure(e) }
         ) { token ->
@@ -118,49 +119,39 @@ class DAuth {
         request: TokenRequest,
         onFailure: (Exception) -> Unit,
         onSuccess: (Token) -> Unit
-    ) {
-        RetrofitInstance.api.getToken(
-            client_id = request.client_id,
-            client_secret = request.client_secret,
-            grant_type = request.grant_type,
-            code = request.code,
-            redirect_uri = request.redirect_uri
-        ).enqueue(object : Callback<Token> {
-            override fun onResponse(call: Call<Token>, response: Response<Token>) {
-                if (!response.isSuccessful) {
-                    onFailure(Exception(response.code().toString()))
-                    return
-                }
-
-                response.body()?.let { onSuccess(it) }
+    ) = RetrofitInstance.api.getToken(request.toMap()).enqueue(object : Callback<Token> {
+        override fun onResponse(call: Call<Token>, response: Response<Token>) {
+            if (!response.isSuccessful) {
+                onFailure(Exception(response.code().toString()))
+                return
             }
 
-            override fun onFailure(call: Call<Token>, t: Throwable) {
-                onFailure(Exception(t.message))
-            }
-        })
-    }
+            response.body()?.let { onSuccess(it) }
+        }
+
+        override fun onFailure(call: Call<Token>, t: Throwable) {
+            onFailure(Exception(t.message))
+        }
+    })
 
     private fun fetchUserDetails(
         accessToken: String,
         onFailure: (Exception) -> Unit,
         onSuccess: (User) -> Unit
-    ) {
-        RetrofitInstance.api.getUser(accessToken).enqueue(object : Callback<User> {
-            override fun onResponse(call: Call<User>, response: Response<User>) {
-                if (!response.isSuccessful) {
-                    onFailure(Exception(response.code().toString()))
-                    return
-                }
-
-                response.body()?.let { onSuccess(it) }
+    ) = RetrofitInstance.api.getUser(accessToken).enqueue(object : Callback<User> {
+        override fun onResponse(call: Call<User>, response: Response<User>) {
+            if (!response.isSuccessful) {
+                onFailure(Exception(response.code().toString()))
+                return
             }
 
-            override fun onFailure(call: Call<User>, t: Throwable) {
-                onFailure(Exception(t.message))
-            }
-        })
-    }
+            response.body()?.let { onSuccess(it) }
+        }
+
+        override fun onFailure(call: Call<User>, t: Throwable) {
+            onFailure(Exception(t.message))
+        }
+    })
 
     fun getCurrentUser(): User? = currentUser
 
