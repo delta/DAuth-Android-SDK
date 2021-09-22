@@ -3,7 +3,7 @@ package edu.nitt.delta
 import android.content.Context
 import android.net.Uri
 import edu.nitt.delta.api.RetrofitInstance
-import edu.nitt.delta.helpers.AuthorizationState
+import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
 import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
@@ -31,124 +31,118 @@ class DAuth {
 
     private var currentUser: User? = null
 
-    fun signIn(context: Context, signInListener: SignInListener) {
-        requestAuthorization(
-            context,
-            AuthorizationRequest(
-                "xobh.KPYVvLXhGum",
-                "https://www.google.com",
-                ResponseType.Code,
-                GrantType.AuthorizationCode,
-                "1ww12",
-                listOf(Scope.OpenID),
-                "ncsasd"
+    fun signIn(context: Context, signInListener: SignInListener) = requestAuthorization(
+        context,
+        AuthorizationRequest(
+            "xobh.KPYVvLXhGum",
+            "https://www.google.com",
+            ResponseType.Code,
+            GrantType.AuthorizationCode,
+            "1ww12",
+            listOf(Scope.OpenID),
+            "ncsasd"
+        ),
+        onFailure = { errorState -> signInListener.onFailure(Exception(errorState.toString())) }
+    ) { authResponse ->
+        fetchToken(
+            TokenRequest(
+                client_id = "xobh.KPYVvLXhGum",
+                client_secret = "https://www.google.com",
+                grant_type = GrantType.AuthorizationCode.toString(),
+                code = authResponse.authorizationCode,
+                redirect_uri = "https://www.google.com"
             ),
-            object : AuthorizationState.AuthorizationStateListener {
-                override fun onFailure(authorizationErrorState: AuthorizationState.AuthorizationErrorState) {
-                    signInListener.onFailure(Exception(authorizationErrorState.toString()))
-                }
-
-                override fun onSuccess(authorizationResponse: AuthorizationResponse) {
-                    fetchToken(
-                        TokenRequest(
-                            client_id = "xobh.KPYVvLXhGum",
-                            client_secret = "https://www.google.com",
-                            grant_type = GrantType.AuthorizationCode.toString(),
-                            code = authorizationResponse.authorizationCode,
-                            redirect_uri = "https://www.google.com"
-                        ), onFailure = { e -> signInListener.onFailure(e) }
-                    ) { token ->
-                        fetchUserDetails(
-                            token.access_token,
-                            onFailure = { e -> signInListener.onFailure(e) }) { user ->
-                            currentUser = user
-                            signInListener.onSuccess(user)
-                            // TODO: 9/22/2021 Store User object locally
-                        }
-                    }
-                }
-            })
+            onFailure = { e -> signInListener.onFailure(e) }
+        ) { token ->
+            fetchUserDetails(
+                token.access_token,
+                onFailure = { e -> signInListener.onFailure(e) }
+            ) { user ->
+                currentUser = user
+                signInListener.onSuccess(user)
+                // TODO: 9/22/2021 Store User object locally
+            }
+        }
     }
 
     // to request for authorization use authorizationRequest members as query parameters
     private fun requestAuthorization(
         context: Context,
         authorizationRequest: AuthorizationRequest,
-        authorizationStateListener: AuthorizationState.AuthorizationStateListener
-    ) {
-        if (isNetworkAvailable(context)) {
-            selectAccount(context, object : SelectAccountListener {
-                override fun onSuccess(cookie: String) {
-                    val uri: Uri = Uri.Builder()
-                        .scheme(SCHEME)
-                        .authority(BASE_AUTHORITY)
-                        .appendPath("authorize")
-                        .appendQueryParameter("client_id", authorizationRequest.client_id)
-                        .appendQueryParameter("redirect_uri", authorizationRequest.redirect_uri)
-                        .appendQueryParameter(
-                            "response_type",
-                            authorizationRequest.response_type.toString()
-                        )
-                        .appendQueryParameter(
-                            "grant_type",
-                            authorizationRequest.grant_type.toString()
-                        )
-                        .appendQueryParameter("state", authorizationRequest.state)
-                        .appendQueryParameter(
-                            "scopes",
-                            Scope.combineScopes(authorizationRequest.scopes)
-                        )
-                        .appendQueryParameter("nonce", authorizationRequest.nonce)
-                        .build()
-                    val alertDialog = openWebViewWithUriAndCookie(
-                        context,
-                        uri,
-                        object : ShouldOverrideURLListener {
-                            override fun shouldLoadUrl(url: String): Boolean {
-                                val uri: Uri = Uri.parse(url)
-                                if (url.startsWith(authorizationRequest.redirect_uri)) {
-                                    if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
-                                        authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.AuthorizationDenied)
-                                    } else {
-                                        val authorizationResponse = AuthorizationResponse(
-                                            uri.getQueryParameter("code") ?: "",
-                                            uri.getQueryParameter("state") ?: ""
-                                        )
-                                        authorizationStateListener.onSuccess(authorizationResponse)
-                                    }
-                                    return false
-                                }
-                                if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(
-                                        BASE_URL
-                                    )
-                                ) {
-                                    authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.InternalError)
-                                    return false
-                                }
-                                if (uri.path == "/dashboard") {
-                                    authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.InternalError)
-                                    return false
-                                }
-                                return true
-                            }
-                        },
-                        cookie
+        onFailure: (AuthorizationErrorType) -> Unit,
+        onSuccess: (AuthorizationResponse) -> Unit
+    ) = if (isNetworkAvailable(context)) {
+        selectAccount(context, object : SelectAccountListener {
+            override fun onSuccess(cookie: String) {
+                val uri: Uri = Uri.Builder()
+                    .scheme(SCHEME)
+                    .authority(BASE_AUTHORITY)
+                    .appendPath("authorize")
+                    .appendQueryParameter("client_id", authorizationRequest.client_id)
+                    .appendQueryParameter("redirect_uri", authorizationRequest.redirect_uri)
+                    .appendQueryParameter(
+                        "response_type",
+                        authorizationRequest.response_type.toString()
                     )
-                    alertDialog.setOnDismissListener {
-                        authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.UserDismissed)
-                    }
+                    .appendQueryParameter(
+                        "grant_type",
+                        authorizationRequest.grant_type.toString()
+                    )
+                    .appendQueryParameter("state", authorizationRequest.state)
+                    .appendQueryParameter(
+                        "scopes",
+                        Scope.combineScopes(authorizationRequest.scopes)
+                    )
+                    .appendQueryParameter("nonce", authorizationRequest.nonce)
+                    .build()
+                val alertDialog = openWebViewWithUriAndCookie(
+                    context,
+                    uri,
+                    object : ShouldOverrideURLListener {
+                        override fun shouldLoadUrl(url: String): Boolean {
+                            val uri: Uri = Uri.parse(url)
+                            if (url.startsWith(authorizationRequest.redirect_uri)) {
+                                if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
+                                    onFailure(AuthorizationErrorType.AuthorizationDenied)
+                                } else {
+                                    val authorizationResponse = AuthorizationResponse(
+                                        uri.getQueryParameter("code") ?: "",
+                                        uri.getQueryParameter("state") ?: ""
+                                    )
+                                    onSuccess(authorizationResponse)
+                                }
+                                return false
+                            }
+                            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(
+                                    BASE_URL
+                                )
+                            ) {
+                                onFailure(AuthorizationErrorType.InternalError)
+                                return false
+                            }
+                            if (uri.path == "/dashboard") {
+                                onFailure(AuthorizationErrorType.InternalError)
+                                return false
+                            }
+                            return true
+                        }
+                    },
+                    cookie
+                )
+                alertDialog.setOnDismissListener {
+                    onFailure(AuthorizationErrorType.UserDismissed)
                 }
+            }
 
-                override fun onFailure() {
-                    authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.InternalError)
-                }
+            override fun onFailure() {
+                onFailure(AuthorizationErrorType.InternalError)
+            }
 
-                override fun onUserDismiss() {
-                    authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.UserDismissed)
-                }
-            })
-        } else authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.NetworkError)
-    }
+            override fun onUserDismiss() {
+                onFailure(AuthorizationErrorType.UserDismissed)
+            }
+        })
+    } else onFailure(AuthorizationErrorType.NetworkError)
 
     //to request token use tokenRequest members as query parameters
     private fun fetchToken(
