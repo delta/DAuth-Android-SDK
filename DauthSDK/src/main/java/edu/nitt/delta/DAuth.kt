@@ -2,6 +2,7 @@ package edu.nitt.delta
 
 import android.content.Context
 import android.net.Uri
+import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.helpers.AuthorizationState
 import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
@@ -13,19 +14,64 @@ import edu.nitt.delta.helpers.retrieveCookie
 import edu.nitt.delta.interfaces.SelectAccountFromAccountManagerListener
 import edu.nitt.delta.interfaces.SelectAccountListener
 import edu.nitt.delta.interfaces.ShouldOverrideURLListener
+import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.AuthorizationResponse
+import edu.nitt.delta.models.GrantType
+import edu.nitt.delta.models.ResponseType
 import edu.nitt.delta.models.Scope
 import edu.nitt.delta.models.Token
 import edu.nitt.delta.models.TokenRequest
 import edu.nitt.delta.models.User
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
 
 class DAuth {
 
-    lateinit var currentUser: User
+    private var currentUser: User? = null
+
+    fun signIn(context: Context, signInListener: SignInListener) {
+        requestAuthorization(
+            context,
+            AuthorizationRequest(
+                "xobh.KPYVvLXhGum",
+                "https://www.google.com",
+                ResponseType.Code,
+                GrantType.AuthorizationCode,
+                "1ww12",
+                listOf(Scope.OpenID),
+                "ncsasd"
+            ),
+            object : AuthorizationState.AuthorizationStateListener {
+                override fun onFailure(authorizationErrorState: AuthorizationState.AuthorizationErrorState) {
+                    signInListener.onFailure(Exception(authorizationErrorState.toString()))
+                }
+
+                override fun onSuccess(authorizationResponse: AuthorizationResponse) {
+                    fetchToken(
+                        TokenRequest(
+                            client_id = "xobh.KPYVvLXhGum",
+                            client_secret = "https://www.google.com",
+                            grant_type = GrantType.AuthorizationCode.toString(),
+                            code = authorizationResponse.authorizationCode,
+                            redirect_uri = "https://www.google.com"
+                        ), onFailure = { e -> signInListener.onFailure(e) }
+                    ) { token ->
+                        fetchUserDetails(
+                            token.access_token,
+                            onFailure = { e -> signInListener.onFailure(e) }) { user ->
+                            currentUser = user
+                            signInListener.onSuccess(user)
+                            // TODO: 9/22/2021 Store User object locally
+                        }
+                    }
+                }
+            })
+    }
 
     // to request for authorization use authorizationRequest members as query parameters
-    fun requestAuthorization(
+    private fun requestAuthorization(
         context: Context,
         authorizationRequest: AuthorizationRequest,
         authorizationStateListener: AuthorizationState.AuthorizationStateListener
@@ -101,22 +147,61 @@ class DAuth {
                     authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.UserDismissed)
                 }
             })
-        } else {
-            authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.NetworkError)
-        }
+        } else authorizationStateListener.onFailure(AuthorizationState.AuthorizationErrorState.NetworkError)
     }
 
     //to request token use tokenRequest members as query parameters
-    fun requestToken(tokenRequest: TokenRequest): Token {
-        TODO("make a request and token will be obtained as response")
+    private fun fetchToken(
+        request: TokenRequest,
+        onFailure: (Exception) -> Unit,
+        onSuccess: (Token) -> Unit
+    ) {
+        RetrofitInstance.api.getToken(
+            client_id = request.client_id,
+            client_secret = request.client_secret,
+            grant_type = request.grant_type,
+            code = request.code,
+            redirect_uri = request.redirect_uri
+        ).enqueue(object : Callback<Token> {
+            override fun onResponse(call: Call<Token>, response: Response<Token>) {
+                if (!response.isSuccessful) {
+                    onFailure(Exception(response.code().toString()))
+                    return
+                }
+
+                response.body()?.let { onSuccess(it) }
+            }
+
+            override fun onFailure(call: Call<Token>, t: Throwable) {
+                onFailure(Exception(t.message))
+            }
+        })
     }
 
-    fun getLoggedUser(): User {
-        TODO("return current User")
+    private fun fetchUserDetails(
+        accessToken: String,
+        onFailure: (Exception) -> Unit,
+        onSuccess: (User) -> Unit
+    ) {
+        RetrofitInstance.api.getUser(accessToken).enqueue(object : Callback<User> {
+            override fun onResponse(call: Call<User>, response: Response<User>) {
+                if (!response.isSuccessful) {
+                    onFailure(Exception(response.code().toString()))
+                    return
+                }
+
+                response.body()?.let { onSuccess(it) }
+            }
+
+            override fun onFailure(call: Call<User>, t: Throwable) {
+                onFailure(Exception(t.message))
+            }
+        })
     }
+
+    fun getCurrentUser(): User? = currentUser
 
     private fun selectAccount(context: Context, selectAccountListener: SelectAccountListener) {
-
         selectAccountFromAccountManager(context, object : SelectAccountFromAccountManagerListener {
             override fun onSelect(cookie: String) {
                 selectAccountListener.onSuccess(cookie)
@@ -168,11 +253,6 @@ class DAuth {
     }
 
     fun registerWithClient() {
-        TODO("To be implemented")
-    }
-
-    // check if accountManager already has it
-    fun checkIfUserExists(): Boolean {
         TODO("To be implemented")
     }
 
