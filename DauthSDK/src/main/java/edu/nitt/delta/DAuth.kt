@@ -30,8 +30,8 @@ class DAuth {
     fun signIn(context: Context, signInListener: SignInListener) = requestAuthorization(
         context,
         AuthorizationRequest(
-            "xobh.KPYVvLXhGum",
-            "https://www.google.com",
+            "p~99L3MBqEeqRL2s",
+            "http://google.com",
             ResponseType.Code,
             GrantType.AuthorizationCode,
             "1ww12",
@@ -42,11 +42,11 @@ class DAuth {
     ) { authResponse ->
         fetchToken(
             TokenRequest(
-                client_id = "xobh.KPYVvLXhGum",
-                client_secret = "https://www.google.com",
+                client_id = "p~99L3MBqEeqRL2s",
+                client_secret = "dFXPJex-uV7I3P9flDni8xR4GTpFcE8D",
                 grant_type = GrantType.AuthorizationCode.toString(),
                 code = authResponse.authorizationCode,
-                redirect_uri = "https://www.google.com"
+                redirect_uri = "http://google.com"
             ),
             onFailure = { e -> signInListener.onFailure(e) }
         ) { token ->
