@@ -14,15 +14,13 @@ import android.webkit.WebViewClient
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
-import edu.nitt.delta.interfaces.ShouldOverrideURLListener
 
-internal fun openWebViewWithUriAndCookie(
+internal fun openWebView(
     context: Context,
     uri: Uri,
-    shouldOverrideURLListener: ShouldOverrideURLListener,
-    cookie: String? = null
+    cookie: String? = null,
+    shouldLoadUrl: (String) -> Boolean,
 ): Dialog {
-
     val progressBar = ProgressBar(context, null, R.attr.progressBarStyleHorizontal)
     val webView = object : WebView(context) {
         override fun onCheckIsTextEditor(): Boolean {
@@ -32,7 +30,7 @@ internal fun openWebViewWithUriAndCookie(
     val alertDialog = Dialog(context, android.R.style.Theme_Material_NoActionBar_Fullscreen)
     webView.webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
-            val loadURL = shouldOverrideURLListener.shouldLoadUrl(url)
+            val loadURL = shouldLoadUrl(url)
             if (loadURL) {
                 view.loadUrl(url)
             }
@@ -45,7 +43,7 @@ internal fun openWebViewWithUriAndCookie(
 
         override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
             if (!isReload && url != null) {
-                val dismiss = !shouldOverrideURLListener.shouldLoadUrl(url)
+                val dismiss = !shouldLoadUrl(url)
                 if (dismiss) {
                     alertDialog.setOnDismissListener { }
                     alertDialog.dismiss()
