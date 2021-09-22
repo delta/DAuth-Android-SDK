@@ -9,7 +9,6 @@ import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
-import edu.nitt.delta.interfaces.SelectAccountFromAccountManagerListener
 import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.models.AuthorizationRequest
@@ -169,47 +168,40 @@ class DAuth {
         context: Context,
         onFailure: () -> Unit,
         onUserDismiss: () -> Unit,
-        onSuccess: (String) -> Unit
-    ) {
-        selectAccountFromAccountManager(context, object : SelectAccountFromAccountManagerListener {
-            override fun onSelect(cookie: String) {
-                onSuccess(cookie)
-            }
+        onSuccess: (cookie: String) -> Unit
+    ) = selectAccountFromAccountManager(
+        context,
+        onCreateNewAccount = {
+            val uri: Uri = Uri.Builder()
+                .scheme(SCHEME)
+                .authority(BASE_AUTHORITY)
+                .build()
 
-            override fun onCreateNewAccount() {
-                val uri: Uri = Uri.Builder()
-                    .scheme(SCHEME)
-                    .authority(BASE_AUTHORITY)
-                    .build()
-
-                val alertDialog = openWebView(context, uri) { url ->
-                    val uri: Uri = Uri.parse(url)
-                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
-                        onFailure()
-                        return@openWebView false
-                    }
-                    if (uri.path.contentEquals("/dashboard")) {
-                        onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
-                        return@openWebView false
-                    }
-                    return@openWebView true
+            val alertDialog = openWebView(context, uri) { url ->
+                val uri: Uri = Uri.parse(url)
+                if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
+                    onFailure()
+                    return@openWebView false
                 }
-                alertDialog.setOnDismissListener {
-                    onUserDismiss()
+                if (uri.path.contentEquals("/dashboard")) {
+                    onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
+                    return@openWebView false
                 }
+                return@openWebView true
             }
-
-            override fun onUserDismiss() {
-                onUserDismiss()
-            }
-        })
-    }
+            alertDialog.setOnDismissListener { onUserDismiss() }
+        },
+        onUserDismiss = onUserDismiss,
+        onSelect = onSuccess
+    )
 
     private fun selectAccountFromAccountManager(
         context: Context,
-        selectAccountFromAccountManagerListener: SelectAccountFromAccountManagerListener
+        onCreateNewAccount: () -> Unit,
+        onUserDismiss: () -> Unit,
+        onSelect: (cookie: String) -> Unit
     ) {
-        selectAccountFromAccountManagerListener.onCreateNewAccount()
+        onCreateNewAccount()
         //TODO("Account Selection UI for testing uncomment the previous")
     }
 
