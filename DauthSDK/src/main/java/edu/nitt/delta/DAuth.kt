@@ -14,8 +14,6 @@ import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.AuthorizationResponse
-import edu.nitt.delta.models.GrantType
-import edu.nitt.delta.models.ResponseType
 import edu.nitt.delta.models.Scope
 import edu.nitt.delta.models.Token
 import edu.nitt.delta.models.TokenRequest
@@ -28,26 +26,23 @@ class DAuth {
 
     private var currentUser: User? = null
 
-    fun signIn(context: Context, signInListener: SignInListener) = requestAuthorization(
+    fun signIn(
+        context: Context,
+        authRequest: AuthorizationRequest,
+        clientSecret: String,
+        signInListener: SignInListener
+    ) = requestAuthorization(
         context,
-        AuthorizationRequest(
-            "PwLV_Z_GGJSZECg1",
-            "https://www.youtube.com/",
-            ResponseType.Code,
-            GrantType.AuthorizationCode,
-            "1ww12",
-            listOf(Scope.OpenID),
-            "ncsasd"
-        ),
+        authRequest,
         onFailure = { errorState -> signInListener.onFailure(Exception(errorState.toString())) }
     ) { authResponse ->
         fetchToken(
             TokenRequest(
-                client_id = "PwLV_Z_GGJSZECg1",
-                client_secret = "3LSlIeFSbaiTJB3ptVrrE1OdkRVUZFzU",
-                grant_type = GrantType.AuthorizationCode.toString(),
+                client_id = authRequest.client_id,
+                client_secret = clientSecret,
+                grant_type = authRequest.grant_type.toString(),
                 code = authResponse.authorizationCode,
-                redirect_uri = "https://www.youtube.com/"
+                redirect_uri = authRequest.redirect_uri
             ),
             onFailure = { e -> signInListener.onFailure(e) }
         ) { token ->
@@ -82,7 +77,7 @@ class DAuth {
             .appendQueryParameter("response_type", authRequest.response_type.toString())
             .appendQueryParameter("grant_type", authRequest.grant_type.toString())
             .appendQueryParameter("state", authRequest.state)
-            .appendQueryParameter("scopes", Scope.combineScopes(authRequest.scopes))
+            .appendQueryParameter("scope", Scope.combineScopes(authRequest.scopes))
             .appendQueryParameter("nonce", authRequest.nonce)
             .build()
         val alertDialog = openWebView(context, uri, cookie) { url ->
@@ -138,7 +133,7 @@ class DAuth {
         accessToken: String,
         onFailure: (Exception) -> Unit,
         onSuccess: (User) -> Unit
-    ) = RetrofitInstance.api.getUser(accessToken).enqueue(object : Callback<User> {
+    ) = RetrofitInstance.api.getUser("Bearer $accessToken").enqueue(object : Callback<User> {
         override fun onResponse(call: Call<User>, response: Response<User>) {
             if (!response.isSuccessful) {
                 onFailure(Exception(response.code().toString()))
