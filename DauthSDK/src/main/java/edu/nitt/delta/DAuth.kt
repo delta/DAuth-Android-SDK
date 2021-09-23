@@ -32,11 +32,11 @@ class DAuth {
         context,
         AuthorizationRequest(
             "PwLV_Z_GGJSZECg1",
-            "https://www.youtube.com/",
+            "https://github.com/",
             ResponseType.Code,
             GrantType.AuthorizationCode,
             "1ww12",
-            listOf(Scope.OpenID),
+            listOf(Scope.OpenID, Scope.User, Scope.Email, Scope.Profile),
             "ncsasd"
         ),
         onFailure = { errorState -> signInListener.onFailure(Exception(errorState.toString())) }
@@ -44,10 +44,10 @@ class DAuth {
         fetchToken(
             TokenRequest(
                 client_id = "PwLV_Z_GGJSZECg1",
-                client_secret = "3LSlIeFSbaiTJB3ptVrrE1OdkRVUZFzU",
+                client_secret = "cRaxHJSugJeo8YJOO5GisYgDv6x53Uxs",
                 grant_type = GrantType.AuthorizationCode.toString(),
                 code = authResponse.authorizationCode,
-                redirect_uri = "https://www.youtube.com/"
+                redirect_uri = "https://github.com/"
             ),
             onFailure = { e -> signInListener.onFailure(e) }
         ) { token ->
@@ -82,7 +82,7 @@ class DAuth {
             .appendQueryParameter("response_type", authRequest.response_type.toString())
             .appendQueryParameter("grant_type", authRequest.grant_type.toString())
             .appendQueryParameter("state", authRequest.state)
-            .appendQueryParameter("scopes", Scope.combineScopes(authRequest.scopes))
+            .appendQueryParameter("scope", Scope.combineScopes(authRequest.scopes))
             .appendQueryParameter("nonce", authRequest.nonce)
             .build()
         val alertDialog = openWebView(context, uri, cookie) { url ->
@@ -138,7 +138,7 @@ class DAuth {
         accessToken: String,
         onFailure: (Exception) -> Unit,
         onSuccess: (User) -> Unit
-    ) = RetrofitInstance.api.getUser(accessToken).enqueue(object : Callback<User> {
+    ) = RetrofitInstance.api.getUser("Bearer $accessToken").enqueue(object : Callback<User> {
         override fun onResponse(call: Call<User>, response: Response<User>) {
             if (!response.isSuccessful) {
                 onFailure(Exception(response.code().toString()))

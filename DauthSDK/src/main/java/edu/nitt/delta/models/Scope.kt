@@ -1,33 +1,29 @@
 package edu.nitt.delta.models
 
 enum class Scope {
-    OpenID{
+    OpenID {
         override fun toString(): String {
             return "openid"
-        } },
-    Email{
+        }
+    },
+    Email {
         override fun toString(): String {
             return "email"
-        } },
-    Profile{
+        }
+    },
+    Profile {
         override fun toString(): String {
             return "profile"
-        } },
-    User{
+        }
+    },
+    User {
         override fun toString(): String {
             return "user"
-        } };
-
-    companion object{
-        fun combineScopes(scopes: List<Scope>):String{
-            var out = ""
-            for (scope in scopes){
-                out += "+${scope}"
-            }
-            if (out.isNotEmpty()){
-                out = out.substring(1)
-            }
-            return out
         }
+    };
+
+    companion object {
+        fun combineScopes(scopes: List<Scope>) =
+            scopes.map { it.toString() }.joinToString(separator = "+") { it }
     }
 }
