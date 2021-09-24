@@ -49,6 +49,9 @@ captures/
 app/google-services.json
 app/gcloud-service-key.json
 
+# DAuth Creds
+client-creds.json
+
 # External native build folder generated in Android Studio 2.2 and later
 .externalNativeBuild
 
