@@ -19,15 +19,12 @@ class MainActivity : AppCompatActivity() {
             DAuth.signIn(
                 context = this,
                 authRequest = AuthorizationRequest(
-                    "PwLV_Z_GGJSZECg1",
-                    "https://github.com/",
                     ResponseType.Code,
                     GrantType.AuthorizationCode,
                     "1ww12",
                     listOf(Scope.OpenID, Scope.User, Scope.Email, Scope.Profile),
                     "ncsasd"
                 ),
-                clientSecret = "cRaxHJSugJeo8YJOO5GisYgDv6x53Uxs",
                 signInListener = object : SignInListener {
                     override fun onSuccess(user: User) {
                         println("Success: $user")

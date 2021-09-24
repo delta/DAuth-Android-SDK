@@ -35,7 +35,6 @@ object DAuth {
     fun signIn(
         context: Context,
         authRequest: AuthorizationRequest,
-        clientSecret: String,
         signInListener: SignInListener
     ) = requestAuthorization(
         context,
@@ -44,11 +43,11 @@ object DAuth {
     ) { authResponse ->
         fetchToken(
             TokenRequest(
-                client_id = authRequest.client_id,
-                client_secret = clientSecret,
+                client_id = clientCreds.clientId,
+                client_secret = clientCreds.clientSecret,
                 grant_type = authRequest.grant_type.toString(),
                 code = authResponse.authorizationCode,
-                redirect_uri = authRequest.redirect_uri
+                redirect_uri = clientCreds.redirectUri
             ),
             onFailure = { e -> signInListener.onFailure(e) }
         ) { token ->
@@ -78,8 +77,8 @@ object DAuth {
             .scheme(SCHEME)
             .authority(BASE_AUTHORITY)
             .appendPath("authorize")
-            .appendQueryParameter("client_id", authRequest.client_id)
-            .appendQueryParameter("redirect_uri", authRequest.redirect_uri)
+            .appendQueryParameter("client_id", clientCreds.clientId)
+            .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
             .appendQueryParameter("response_type", authRequest.response_type.toString())
             .appendQueryParameter("grant_type", authRequest.grant_type.toString())
             .appendQueryParameter("state", authRequest.state)
@@ -88,7 +87,7 @@ object DAuth {
             .build()
         val alertDialog = openWebView(context, uri, cookie) { url ->
             val uri: Uri = Uri.parse(url)
-            if (url.startsWith(authRequest.redirect_uri)) {
+            if (url.startsWith(clientCreds.redirectUri)) {
                 if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
                     onFailure(AuthorizationErrorType.AuthorizationDenied)
                 } else {
