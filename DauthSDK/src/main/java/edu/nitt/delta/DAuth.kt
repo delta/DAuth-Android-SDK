@@ -1,7 +1,12 @@
 package edu.nitt.delta
 
+import android.accounts.AccountManager
+import android.app.AlertDialog
 import android.content.Context
+import android.content.Intent
 import android.net.Uri
+import android.util.Log
+import android.widget.Toast
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
 import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
@@ -24,7 +29,7 @@ import retrofit2.Callback
 import retrofit2.Response
 
 object DAuth {
-
+    private const val TAG = "DAuth"
     private var currentUser: User? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
@@ -163,24 +168,31 @@ object DAuth {
     ) = selectAccountFromAccountManager(
         context,
         onCreateNewAccount = {
-            val uri: Uri = Uri.Builder()
-                .scheme(SCHEME)
-                .authority(BASE_AUTHORITY)
-                .build()
-
-            val alertDialog = openWebView(context, uri) { url ->
-                val uri: Uri = Uri.parse(url)
-                if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
-                    onFailure()
-                    return@openWebView false
-                }
-                if (uri.path.contentEquals("/dashboard")) {
-                    onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
-                    return@openWebView false
-                }
-                return@openWebView true
+            val accountManager = AccountManager.get(context)
+            context.startService(Intent(context, DauthAuthenticatorService::class.java))
+            if (accountManager.getAccountsByType("auth.delta.nitt.edu").isNotEmpty()) {
+                createDialog(accountManager, context)
             }
-            alertDialog.setOnDismissListener { onUserDismiss() }
+            else {
+                accountManager.addAccount("auth.delta.nitt.edu",null,null,null,null,null,null)
+                val uri: Uri = Uri.Builder()
+                    .scheme(SCHEME)
+                    .authority(BASE_AUTHORITY)
+                    .build()
+                val alertDialog = openWebView(context, uri) { url ->
+                    val uri: Uri = Uri.parse(url)
+                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
+                        onFailure()
+                        return@openWebView false
+                    }
+                    if (uri.path.contentEquals("/dashboard")) {
+                        onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
+                        return@openWebView false
+                    }
+                    return@openWebView true
+                }
+                alertDialog.setOnDismissListener { onUserDismiss() }
+            }
         },
         onUserDismiss = onUserDismiss,
         onSelect = onSuccess
@@ -203,5 +215,20 @@ object DAuth {
     // adds user in accountManager
     fun addUser() {
         TODO("To be implemented")
+    }
+    private fun createDialog(accountManager: AccountManager, context: Context) {
+        val items = accountManager.getAccountsByType("auth.delta.nitt.edu")
+        val accountnames :Array<String> = Array(items.size){"null"}
+        val alertBuilder = AlertDialog.Builder(context)
+        alertBuilder.setTitle("Select an account")
+        for(i in items.indices)
+        {
+            accountnames[i]=items[i].name
+        }
+        Log.d(TAG, "createDialog: ${items[0].name.toString()}")
+        alertBuilder.setItems(accountnames){ dialogInterface, which ->
+            Toast.makeText(context,"clicked yes", Toast.LENGTH_LONG).show()
+        }
+        alertBuilder.create().show()
     }
 }
