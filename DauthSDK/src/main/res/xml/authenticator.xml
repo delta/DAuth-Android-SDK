@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <account-authenticator xmlns:android="http://schemas.android.com/apk/res/android"
-    android:accountType="auth.delta.nitt.edu"
-    android:label="DAuth"
+    android:accountType="@string/accountType"
+    android:label="@string/label"
     android:icon="@drawable/ic_android_black_24dp"
     android:smallIcon="@drawable/ic_android_black_24dp"
     android:accountPreferences="@xml/prefs"

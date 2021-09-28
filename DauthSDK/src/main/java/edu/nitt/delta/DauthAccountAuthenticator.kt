@@ -30,15 +30,11 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         requiredFeatures: Array<out String>?,
         options: Bundle?
     ): Bundle {
-        val accountManager = AccountManager.get(mContext)
-        val account =
-            Account("pranav123456", "auth.delta.nitt.edu")
-        val added: Boolean = accountManager.addAccountExplicitly(account,"Pranav1811" , Bundle())
-        Log.d(TAG, "addAccount: $added")
+
         val intent = Intent(mContext, DAuthAuthenticatorActivity::class.java)
-        intent.putExtra("accountType", accountType)
-        intent.putExtra("authTokenType", authTokenType)
-        intent.putExtra("is_adding_new_account", true)
+        intent.putExtra("ACCOUNT_TYPE", accountType)
+        intent.putExtra("AUTH_TYPE", authTokenType)
+        intent.putExtra("IS_ADDING_ACCOUNT", true)
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
         val bundle = Bundle()
         bundle.putParcelable(AccountManager.KEY_INTENT, intent)

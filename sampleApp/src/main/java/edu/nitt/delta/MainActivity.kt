@@ -18,7 +18,7 @@ class MainActivity : AppCompatActivity() ,LoginDialog.LoginDialogListener{
         setContentView(R.layout.activity_main)
         val signInButton: Button = findViewById(R.id.sign_in_button)
         signInButton.setOnClickListener {
-            openDialog()
+//            openDialog()
             }
             DAuth.signIn(
                 context = this,

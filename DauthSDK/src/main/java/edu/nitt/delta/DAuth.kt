@@ -1,10 +1,14 @@
 package edu.nitt.delta
 
+import android.accounts.Account
 import android.accounts.AccountManager
+import android.accounts.AccountManagerCallback
+import android.accounts.AccountManagerFuture
+import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
-import android.content.Intent
 import android.net.Uri
+import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import edu.nitt.delta.api.RetrofitInstance
@@ -142,7 +146,6 @@ object DAuth {
                 onFailure(Exception(response.code().toString()))
                 return
             }
-
             response.body()?.let { onSuccess(it) }
         }
 
@@ -162,31 +165,15 @@ object DAuth {
         context,
         onCreateNewAccount = {
             val accountManager = AccountManager.get(context)
-            context.startService(Intent(context, DauthAuthenticatorService::class.java))
-            if (accountManager.getAccountsByType("auth.delta.nitt.edu").isNotEmpty()) {
-                createDialog(accountManager, context)
-            }
-            else {
-                accountManager.addAccount("auth.delta.nitt.edu",null,null,null,null,null,null)
-                val uri: Uri = Uri.Builder()
-                    .scheme(SCHEME)
-                    .authority(BASE_AUTHORITY)
-                    .build()
-                val alertDialog = openWebView(context, uri) { url ->
-                    val uri: Uri = Uri.parse(url)
-                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
-                        onFailure()
-                        return@openWebView false
+//            val account =
+//                Account("pranav123456", "auth.delta.nitt.edu")
+//            val added: Boolean = accountManager.addAccountExplicitly(account,"Pranav1811" , Bundle())
+//            Log.d(TAG, "selectAccount: $added")
+                accountManager.addAccount("auth.delta.nitt.edu",null,null,null,
+                    context as Activity?,object :AccountManagerCallback<Bundle>{
+                    override fun run(future: AccountManagerFuture<Bundle>?) {
                     }
-                    if (uri.path.contentEquals("/dashboard")) {
-                        onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
-                        return@openWebView false
-                    }
-                    return@openWebView true
-                }
-                alertDialog.setOnDismissListener { onUserDismiss() }
-            }
-        },
+                },null)},
         onUserDismiss = onUserDismiss,
         onSelect = onSuccess
     )
@@ -197,8 +184,31 @@ object DAuth {
         onUserDismiss: () -> Unit,
         onSelect: (cookie: String) -> Unit
     ) {
-        onCreateNewAccount()
-        //TODO("Account Selection UI for testing uncomment the previous")
+//        createDialog(context, onCreateNewAccount)
+
+        try {
+            val accountManager = AccountManager.get(context)
+            val items = accountManager.getAccountsByType("auth.delta.nitt.edu")
+            val accountNames :Array<String> = Array(items.size){"null"}
+            val alertBuilder = AlertDialog.Builder(context)
+            alertBuilder.setTitle("Select an account")
+            for(i in items.indices)
+            {
+                accountNames[i]=items[i].name
+            }
+            Log.d(TAG, "createDialog: ${items[0].name.toString()}")
+            alertBuilder.setItems(accountNames){ dialogInterface, which ->
+                Toast.makeText(context,"clicked yes", Toast.LENGTH_LONG).show()
+            }
+            alertBuilder.setPositiveButton("Create new account"
+            ) { dialog, which ->
+                onCreateNewAccount()
+            }
+            alertBuilder.create().show()
+        }catch (e : Exception ) {
+            Log.d(TAG, "selectAccountFromAccountManager: $e.toString()")
+            onCreateNewAccount()
+        }
     }
 
     fun registerWithClient() {
@@ -209,19 +219,6 @@ object DAuth {
     fun addUser() {
         TODO("To be implemented")
     }
-    private fun createDialog(accountManager: AccountManager, context: Context) {
-        val items = accountManager.getAccountsByType("auth.delta.nitt.edu")
-        val accountnames :Array<String> = Array(items.size){"null"}
-        val alertBuilder = AlertDialog.Builder(context)
-        alertBuilder.setTitle("Select an account")
-        for(i in items.indices)
-        {
-            accountnames[i]=items[i].name
-        }
-        Log.d(TAG, "createDialog: ${items[0].name.toString()}")
-        alertBuilder.setItems(accountnames){ dialogInterface, which ->
-            Toast.makeText(context,"clicked yes", Toast.LENGTH_LONG).show()
-        }
-        alertBuilder.create().show()
+    private fun createDialog(context: Context, onCreateNewAccount: () -> Unit) {
     }
 }
