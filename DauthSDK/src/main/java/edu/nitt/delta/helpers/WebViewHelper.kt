@@ -6,20 +6,25 @@ import android.content.Context
 import android.content.res.Configuration
 import android.net.Uri
 import android.view.View
-import android.webkit.CookieManager
-import android.webkit.WebChromeClient
-import android.webkit.WebSettings
-import android.webkit.WebView
-import android.webkit.WebViewClient
+import android.webkit.*
 import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ProgressBar
+import org.json.JSONObject
 
 internal fun openWebView(
     context: Context,
     uri: Uri,
     cookie: String? = null,
     shouldLoadUrl: (String) -> Boolean,
+): Dialog = openWebView(context, uri, cookie, shouldLoadUrl, null)
+
+internal fun openWebView(
+    context: Context,
+    uri: Uri,
+    cookie: String? = null,
+    shouldLoadUrl: (String) -> Boolean,
+    onLogin: ((String, String) -> Void)? = null,
 ): Dialog {
     val progressBar = ProgressBar(context, null, R.attr.progressBarStyleHorizontal)
     val webView = object : WebView(context) {
@@ -28,6 +33,23 @@ internal fun openWebView(
         }
     }
     val alertDialog = Dialog(context, android.R.style.Theme_Material_NoActionBar_Fullscreen)
+    val postRequests = object {
+        private val payloadMap: MutableMap<String, String> = mutableMapOf()
+
+        @JavascriptInterface
+        fun recordPayload(
+            url: String,
+            payload: String
+        ) {
+            payloadMap[url] = payload
+        }
+
+        fun getPayload(
+            url: String
+        ): String? = payloadMap[url]
+    }
+    webView.addJavascriptInterface(postRequests, "postRequest")
+
     webView.webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
             val loadURL = shouldLoadUrl(url)
@@ -39,6 +61,20 @@ internal fun openWebView(
                 alertDialog.dismiss()
             }
             return true
+        }
+
+        override fun shouldInterceptRequest(
+            view: WebView?,
+            request: WebResourceRequest?
+        ): WebResourceResponse? {
+            if (onLogin != null) {
+                if (request?.url.toString().contentEquals("https://auth.delta.nitt.edu/api/auth/login")) {
+                    val payload = postRequests.getPayload(request?.url.toString())
+                    val json = JSONObject(payload.toString())
+                    onLogin(json.getString("email"), json.getString("password"))
+                }
+            }
+            return super.shouldInterceptRequest(view, request)
         }
 
         override fun doUpdateVisitedHistory(view: WebView?, url: String?, isReload: Boolean) {
@@ -58,6 +94,25 @@ internal fun openWebView(
                 view?.evaluateJavascript(
                     "window.localStorage.setItem('DAuth-theme', 'light');",
                     null
+                )
+            }
+            if (onLogin != null) {
+                view?.evaluateJavascript(
+                    """
+                    XMLHttpRequest.prototype.origOpen = XMLHttpRequest.prototype.open;
+                    XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
+                        // these will be the key to retrieve the payload
+                        this.recordedMethod = method;
+                        this.recordedUrl = url;
+                        this.origOpen(method, url, async, user, password);
+                    };
+                    XMLHttpRequest.prototype.origSend = XMLHttpRequest.prototype.send;
+                    XMLHttpRequest.prototype.send = function(body) {
+                        // interceptor is a Kotlin interface added in WebView
+                        if(body && this.recordedMethod === 'POST') postRequest.recordPayload(this.recordedUrl, body);
+                        this.origSend(body);
+                    };
+                """.trimIndent(), null
                 )
             }
             super.doUpdateVisitedHistory(view, url, isReload)
