@@ -24,7 +24,7 @@ internal fun openWebView(
     uri: Uri,
     cookie: String? = null,
     shouldLoadUrl: (String) -> Boolean,
-    onLogin: ((String, String) -> Void)? = null,
+    onLogin: ((String, String) -> Unit)? = null,
 ): Dialog {
     val progressBar = ProgressBar(context, null, R.attr.progressBarStyleHorizontal)
     val webView = object : WebView(context) {

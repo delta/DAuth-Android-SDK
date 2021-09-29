@@ -4,5 +4,4 @@
     android:label="@string/label"
     android:icon="@drawable/ic_android_black_24dp"
     android:smallIcon="@drawable/ic_android_black_24dp"
-    android:accountPreferences="@xml/prefs"
     />

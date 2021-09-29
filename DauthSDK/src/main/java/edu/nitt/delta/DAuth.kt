@@ -25,9 +25,14 @@ import edu.nitt.delta.models.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import android.content.DialogInterface
+import android.os.Build
+import okhttp3.ResponseBody
+import java.time.LocalDate
+import java.time.Period
+
 
 object DAuth {
-    private const val TAG = "DAuth"
     private var currentUser: User? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
@@ -165,50 +170,96 @@ object DAuth {
     ) = selectAccountFromAccountManager(
         context,
         onCreateNewAccount = {
-            val accountManager = AccountManager.get(context)
-            val account =
-                Account("pranav123456", "auth.delta.nitt.edu")
-            val added: Boolean = accountManager.addAccountExplicitly(account,"Pranav1811" , Bundle())
-            Log.d(TAG, "selectAccount: $added")
-                accountManager.addAccount("auth.delta.nitt.edu",null,null,null,
-                    context as Activity?,object :AccountManagerCallback<Bundle>{
-                    override fun run(future: AccountManagerFuture<Bundle>?) {
-                    }
-                },null)
-                             },
+        val accountManager = AccountManager.get(context)
+        accountManager.addAccount(DAuthConstants.ACCOUNT_TYPE,
+            null,
+            null,
+            null,
+            context as Activity?,
+            null,
+            null) },
         onUserDismiss = onUserDismiss,
         onSelect = onSuccess
     )
-
     private fun selectAccountFromAccountManager(
         context: Context,
         onCreateNewAccount: () -> Unit,
         onUserDismiss: () -> Unit,
         onSelect: (cookie: String) -> Unit
     ) {
-//        createDialog(context, onCreateNewAccount)
-
         try {
             val accountManager = AccountManager.get(context)
-            val items = accountManager.getAccountsByType("auth.delta.nitt.edu")
-            val accountNames :Array<String> = Array(items.size){"null"}
-            val alertBuilder = AlertDialog.Builder(context)
-            alertBuilder.setTitle("Select an account")
-            for(i in items.indices)
-            {
-                accountNames[i]=items[i].name
+            val items = accountManager.getAccountsByType(DAuthConstants.ACCOUNT_TYPE)
+            if(items.isNotEmpty()) {
+                val accountNames: Array<String> = Array(items.size) { "null" }
+                val alertBuilder = AlertDialog.Builder(context)
+                alertBuilder.setTitle("Select an account")
+                for (i in items.indices) {
+                    accountNames[i] = items[i].name
+                }
+                alertBuilder.setItems(accountNames) { dialog, whichButton ->
+                    val account = Account(accountNames[whichButton], DAuthConstants.ACCOUNT_TYPE)
+                   val fromLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                       accountManager.getUserData(account,AccountManager.KEY_LAST_AUTHENTICATED_TIME)
+                   } else {
+                       TODO("VERSION.SDK_INT < M")
+                   }
+                    val toLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        LocalDate.now()
+                    } else {
+                        TODO("VERSION.SDK_INT < O")
+                    }
+                    val period: Period = Period.between(LocalDate.parse(fromLocalDate), toLocalDate)
+                    if(period.days < 30) {
+                        onSelect(
+                            accountManager.getUserData(
+                                account,
+                                AccountManager.KEY_AUTHTOKEN
+                            )
+                        )
+                    }
+                    else
+                    {
+                       RetrofitInstance.api.getCookie(account.name,accountManager.getPassword(account)).enqueue(object : Callback<ResponseBody> {
+                           override fun onResponse(
+                               call: Call<ResponseBody>,
+                               response: Response<ResponseBody>
+                           ) {
+                               if(response.isSuccessful) {
+                                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                       accountManager.setUserData(
+                                           account, AccountManager.KEY_LAST_AUTHENTICATED_TIME,
+                                           LocalDate.now().toString()
+                                       )
+                                       accountManager.setUserData(account,AccountManager.KEY_AUTHTOKEN,
+                                           response.body().toString())
+                                       onSelect(accountManager.getUserData(account,AccountManager.KEY_AUTHTOKEN))
+                                   }
+                               }
+                               else
+                               {
+                                   onUserDismiss()
+                               }
+                           }
+                           override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                               TODO("Not yet implemented")
+                           }
+                       }
+                       )
+                    }
+
+                }
+                alertBuilder.setPositiveButton(
+                    "Create new account"
+                ) { dialog, which ->
+                    onCreateNewAccount()
+                }
+                alertBuilder.create().show()
             }
-            Log.d(TAG, "createDialog: ${items[0].name.toString()}")
-            alertBuilder.setItems(accountNames){ dialogInterface, which ->
-                Toast.makeText(context,"clicked yes", Toast.LENGTH_LONG).show()
-            }
-            alertBuilder.setPositiveButton("Create new account"
-            ) { dialog, which ->
+            else{
                 onCreateNewAccount()
             }
-            alertBuilder.create().show()
         }catch (e : Exception ) {
-            Log.d(TAG, "selectAccountFromAccountManager: $e.toString()")
             onCreateNewAccount()
         }
     }

@@ -1,45 +1,52 @@
 package edu.nitt.delta
-
 import android.accounts.Account
-import android.accounts.AccountAuthenticatorActivity
-import android.accounts.AccountAuthenticatorResponse
 import android.accounts.AccountManager
-import android.annotation.SuppressLint
 import android.app.Activity
-import android.content.Intent
-import android.content.SharedPreferences
 import android.net.Uri
-import androidx.appcompat.app.AppCompatActivity
+import android.os.Build
 import android.os.Bundle
-import android.util.Log
+import androidx.annotation.RequiresApi
 import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
-
+import java.time.LocalDate
+import java.util.*
 class DAuthAuthenticatorActivity : Activity() {
-//    private val TAG = "authactivity"
-//    @SuppressLint("CommitPrefEdits")
-private  val TAG = "DAuthAuthenticatorActivity"
+    private lateinit var email : String;
+    private lateinit var password : String
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dauth_authenticator)
-    val uri: Uri = Uri.Builder()
-        .scheme(DAuthConstants.SCHEME)
-        .authority(DAuthConstants.BASE_AUTHORITY)
-        .build()
-    val alertDialog = openWebView(this, uri) { url ->
-        val uri: Uri = Uri.parse(url)
-        if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(DAuthConstants.BASE_URL)) {
-//            onFailure()
-            return@openWebView false
-        }
-        if (uri.path.contentEquals("/dashboard")) {
-//            onSuccess(retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
-            return@openWebView false
-        }
-        return@openWebView true
-    }
-    alertDialog.setOnDismissListener{}
-//    alertDialog.setOnDismissListener { onUserDismiss() }
+        val uri: Uri = Uri.Builder()
+            .scheme(DAuthConstants.SCHEME)
+            .authority(DAuthConstants.BASE_AUTHORITY)
+            .build()
+        val alertDialog = openWebView(this, uri, null ,{ url ->
+            val uri: Uri = Uri.parse(url)
+            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(DAuthConstants.BASE_URL)) {
+                return@openWebView false
+            }
+            if (uri.path.contentEquals("/dashboard")) {
+                val accountManager =AccountManager.get(this)
+                val account =
+                    Account(email, DAuthConstants.ACCOUNT_TYPE)
+                val bundle = Bundle()
+                bundle.putString(AccountManager.KEY_AUTHTOKEN,retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    bundle.putString(AccountManager.KEY_LAST_AUTHENTICATED_TIME,
+                        LocalDate.now().toString()
+                    )
+                }
+                accountManager.addAccountExplicitly(account, password,bundle)
+                finish()
+                return@openWebView false
+            }
+            return@openWebView true
+        },{ email, password ->
+            this.email = email
+            this.password = password
+        })
+        alertDialog.setOnDismissListener { finish() }
     }
 }
