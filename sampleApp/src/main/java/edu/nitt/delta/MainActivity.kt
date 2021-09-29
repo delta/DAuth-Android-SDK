@@ -19,7 +19,7 @@ class MainActivity : AppCompatActivity() ,LoginDialog.LoginDialogListener{
         val signInButton: Button = findViewById(R.id.sign_in_button)
         signInButton.setOnClickListener {
 //            openDialog()
-            }
+
             DAuth.signIn(
                 context = this,
                 authRequest = AuthorizationRequest(
@@ -40,6 +40,7 @@ class MainActivity : AppCompatActivity() ,LoginDialog.LoginDialogListener{
                         e.printStackTrace()
                     }
                 })
+        }
         }
 
     override fun applyTexts(username: String?, password: String?) {

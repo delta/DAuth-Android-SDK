@@ -12,12 +12,13 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import edu.nitt.delta.api.RetrofitInstance
+import edu.nitt.delta.helpers.*
+import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
 import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
 import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
-import edu.nitt.delta.helpers.retrieveCookie
 import edu.nitt.delta.helpers.toMap
 import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.*
@@ -165,15 +166,16 @@ object DAuth {
         context,
         onCreateNewAccount = {
             val accountManager = AccountManager.get(context)
-//            val account =
-//                Account("pranav123456", "auth.delta.nitt.edu")
-//            val added: Boolean = accountManager.addAccountExplicitly(account,"Pranav1811" , Bundle())
-//            Log.d(TAG, "selectAccount: $added")
+            val account =
+                Account("pranav123456", "auth.delta.nitt.edu")
+            val added: Boolean = accountManager.addAccountExplicitly(account,"Pranav1811" , Bundle())
+            Log.d(TAG, "selectAccount: $added")
                 accountManager.addAccount("auth.delta.nitt.edu",null,null,null,
                     context as Activity?,object :AccountManagerCallback<Bundle>{
                     override fun run(future: AccountManagerFuture<Bundle>?) {
                     }
-                },null)},
+                },null)
+                             },
         onUserDismiss = onUserDismiss,
         onSelect = onSuccess
     )
