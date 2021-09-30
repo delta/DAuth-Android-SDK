@@ -182,14 +182,16 @@ object DAuth {
             )
         },
         onUserDismiss = onUserDismiss,
-        onSelect = onSuccess
+        onSelect = onSuccess,
+        onFailure = onFailure
     )
 
     private fun selectAccountFromAccountManager(
         context: Context,
         onCreateNewAccount: () -> Unit,
         onUserDismiss: () -> Unit,
-        onSelect: (cookie: String) -> Unit
+        onSelect: (cookie: String) -> Unit,
+        onFailure: () -> Unit
     ) {
         try {
             val accountManager = AccountManager.get(context)
@@ -256,7 +258,7 @@ object DAuth {
                             }
 
                             override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                                TODO("Not yet implemented")
+                                onFailure()
                             }
                         }
                         )
@@ -286,6 +288,5 @@ object DAuth {
         TODO("To be implemented")
     }
 
-    private fun createDialog(context: Context, onCreateNewAccount: () -> Unit) {
-    }
+
 }
