@@ -137,7 +137,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
             mSrcRect = Rect(0, 0, mIcon!!.width, mIcon!!.height)
         }
     }
-    
+
     private fun setDefaultValues(context: Context, logo: Int) {
         mIcon = drawableToBitmap(ContextCompat.getDrawable(context, logo)!!)
         mIconSize = convertDpToPixel(20f, context).toInt()
