@@ -177,8 +177,12 @@ object DAuth {
                 null,
                 null,
                 context as Activity?,
-                null,
-                null
+                { Result ->
+                    onSuccess(accountManager.getUserData(Account(Result.
+                    result.
+                    getString(AccountManager.KEY_ACCOUNT_NAME),DAuthConstants.ACCOUNT_TYPE),AccountManager.KEY_AUTHTOKEN))
+                },
+            null
             )
         },
         onUserDismiss = onUserDismiss,
@@ -278,15 +282,5 @@ object DAuth {
             onCreateNewAccount()
         }
     }
-
-    fun registerWithClient() {
-        TODO("To be implemented")
-    }
-
-    // adds user in accountManager
-    fun addUser() {
-        TODO("To be implemented")
-    }
-
 
 }

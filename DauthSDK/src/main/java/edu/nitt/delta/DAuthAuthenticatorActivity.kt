@@ -1,6 +1,7 @@
 package edu.nitt.delta
 
 import android.accounts.Account
+import android.accounts.AccountAuthenticatorResponse
 import android.accounts.AccountManager
 import android.app.Activity
 import android.net.Uri
@@ -13,13 +14,14 @@ import edu.nitt.delta.helpers.retrieveCookie
 import java.time.LocalDate
 
 class DAuthAuthenticatorActivity : Activity() {
-    private lateinit var email: String;
+    private lateinit var email: String
     private lateinit var password: String
 
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dauth_authenticator)
+        val response=intent.getParcelableExtra<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
         val uri: Uri = Uri.Builder()
             .scheme(DAuthConstants.SCHEME)
             .authority(DAuthConstants.BASE_AUTHORITY)
@@ -44,7 +46,13 @@ class DAuthAuthenticatorActivity : Activity() {
                         LocalDate.now().toString()
                     )
                 }
-                accountManager.addAccountExplicitly(account, password, bundle)
+                bundle.putString(AccountManager.KEY_ACCOUNT_NAME,account.name)
+                if(accountManager.addAccountExplicitly(account,password,bundle))
+                response?.onResult(bundle)
+                else if(account in accountManager.accounts){
+                    accountManager.setUserData(account,AccountManager.KEY_AUTHTOKEN,bundle.getString(AccountManager.KEY_AUTHTOKEN))
+                    response?.onResult(bundle)
+                }
                 finish()
                 return@openWebView false
             }
