@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources xmlns:tools="http://schemas.android.com/tools">
 
-    <declare-styleable name="BaseButton">
+    <declare-styleable name="DeltaButton">
 
         <attr name="iconSize" format="dimension" />
         <attr name="iconPadding" format="dimension" />
@@ -9,7 +9,7 @@
         <attr name="roundedCorner" format="boolean" />
         <attr name="transparentBackground" format="boolean" />
         <attr name="roundedCornerRadius" format="dimension" />
-        <attr name="backgroundColor" format="color" />
+        <attr name="button_background_color" format="color" />
         <attr name="android:textColor" tools:ignore="ResourceName" />
 
     </declare-styleable>
