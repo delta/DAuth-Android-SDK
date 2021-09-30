@@ -10,8 +10,8 @@ import android.graphics.Paint
 import android.graphics.Rect
 import androidx.core.content.ContextCompat
 import edu.nitt.delta.R
-import edu.nitt.delta.helpers.Utils.convertDpToPixel
-import edu.nitt.delta.helpers.Utils.drawableToBitmap
+import edu.nitt.delta.helpers.ViewUtils.convertDpToPixel
+import edu.nitt.delta.helpers.ViewUtils.drawableToBitmap
 
 open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
     private var mIcon: Bitmap? = null
@@ -47,6 +47,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
 
     private fun setStyle(color: Int, context: Context) {
         setTextColor(textColors)
+        setText(R.string.login_button_text)
         drawable = GradientDrawable()
         drawable.shape = GradientDrawable.RECTANGLE
         drawable.setColor(mBackgroundColor)
@@ -57,7 +58,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         }
         if (mTransparentBackground) {
             drawable.setColor(Color.TRANSPARENT)
-            drawable.setStroke(4, resources.getColor(color))
+            drawable.setStroke(4, color)
         }
         drawable.invalidateSelf()
         background = drawable

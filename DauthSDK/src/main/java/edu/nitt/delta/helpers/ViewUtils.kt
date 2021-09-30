@@ -9,7 +9,7 @@ import android.graphics.drawable.Drawable
 import android.util.DisplayMetrics
 
 
-object Utils {
+object ViewUtils {
     fun convertDpToPixel(dp: Float, context: Context): Float {
         val resources: Resources = context.getResources()
         val metrics: DisplayMetrics = resources.getDisplayMetrics()
