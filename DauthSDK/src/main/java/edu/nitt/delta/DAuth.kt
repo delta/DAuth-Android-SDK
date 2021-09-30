@@ -2,31 +2,31 @@ package edu.nitt.delta
 
 import android.accounts.Account
 import android.accounts.AccountManager
-import android.accounts.AccountManagerCallback
-import android.accounts.AccountManagerFuture
 import android.app.Activity
 import android.app.AlertDialog
 import android.content.Context
 import android.net.Uri
-import android.os.Bundle
-import android.util.Log
-import android.widget.Toast
 import edu.nitt.delta.api.RetrofitInstance
-import edu.nitt.delta.helpers.*
 import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
 import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
 import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
-import edu.nitt.delta.helpers.toMap
 import edu.nitt.delta.interfaces.SignInListener
-import edu.nitt.delta.models.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import android.content.DialogInterface
 import android.os.Build
+import edu.nitt.delta.helpers.toMap
+import edu.nitt.delta.models.AuthorizationRequest
+import edu.nitt.delta.models.ClientCredentials
+import edu.nitt.delta.models.Token
+import edu.nitt.delta.models.TokenRequest
+import edu.nitt.delta.models.AuthorizationErrorType
+import edu.nitt.delta.models.AuthorizationResponse
+import edu.nitt.delta.models.Scope
+import edu.nitt.delta.models.User
 import okhttp3.ResponseBody
 import java.time.LocalDate
 import java.time.Period
@@ -170,17 +170,21 @@ object DAuth {
     ) = selectAccountFromAccountManager(
         context,
         onCreateNewAccount = {
-        val accountManager = AccountManager.get(context)
-        accountManager.addAccount(DAuthConstants.ACCOUNT_TYPE,
-            null,
-            null,
-            null,
-            context as Activity?,
-            null,
-            null) },
+            val accountManager = AccountManager.get(context)
+            accountManager.addAccount(
+                DAuthConstants.ACCOUNT_TYPE,
+                null,
+                null,
+                null,
+                context as Activity?,
+                null,
+                null
+            )
+        },
         onUserDismiss = onUserDismiss,
         onSelect = onSuccess
     )
+
     private fun selectAccountFromAccountManager(
         context: Context,
         onCreateNewAccount: () -> Unit,
@@ -190,76 +194,85 @@ object DAuth {
         try {
             val accountManager = AccountManager.get(context)
             val items = accountManager.getAccountsByType(DAuthConstants.ACCOUNT_TYPE)
-            if(items.isNotEmpty()) {
+            if (items.isNotEmpty()) {
                 val accountNames: Array<String> = Array(items.size) { "null" }
                 val alertBuilder = AlertDialog.Builder(context)
                 alertBuilder.setTitle("Select an account")
                 for (i in items.indices) {
                     accountNames[i] = items[i].name
                 }
-                alertBuilder.setItems(accountNames) { dialog, whichButton ->
+                alertBuilder.setItems(accountNames) { _, whichButton ->
                     val account = Account(accountNames[whichButton], DAuthConstants.ACCOUNT_TYPE)
-                   val fromLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                       accountManager.getUserData(account,AccountManager.KEY_LAST_AUTHENTICATED_TIME)
-                   } else {
-                       TODO("VERSION.SDK_INT < M")
-                   }
+                    val fromLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                        accountManager.getUserData(
+                            account,
+                            AccountManager.KEY_LAST_AUTHENTICATED_TIME
+                        )
+                    } else {
+                        TODO("VERSION.SDK_INT < M")
+                    }
                     val toLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         LocalDate.now()
                     } else {
                         TODO("VERSION.SDK_INT < O")
                     }
                     val period: Period = Period.between(LocalDate.parse(fromLocalDate), toLocalDate)
-                    if(period.days < 30) {
+                    if (period.days < 30) {
                         onSelect(
                             accountManager.getUserData(
                                 account,
                                 AccountManager.KEY_AUTHTOKEN
                             )
                         )
-                    }
-                    else
-                    {
-                       RetrofitInstance.api.getCookie(account.name,accountManager.getPassword(account)).enqueue(object : Callback<ResponseBody> {
-                           override fun onResponse(
-                               call: Call<ResponseBody>,
-                               response: Response<ResponseBody>
-                           ) {
-                               if(response.isSuccessful) {
-                                   if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                       accountManager.setUserData(
-                                           account, AccountManager.KEY_LAST_AUTHENTICATED_TIME,
-                                           LocalDate.now().toString()
-                                       )
-                                       accountManager.setUserData(account,AccountManager.KEY_AUTHTOKEN,
-                                           response.body().toString())
-                                       onSelect(accountManager.getUserData(account,AccountManager.KEY_AUTHTOKEN))
-                                   }
-                               }
-                               else
-                               {
-                                   onUserDismiss()
-                               }
-                           }
-                           override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                               TODO("Not yet implemented")
-                           }
-                       }
-                       )
+                    } else {
+                        RetrofitInstance.api.getCookie(
+                            account.name,
+                            accountManager.getPassword(account)
+                        ).enqueue(object : Callback<ResponseBody> {
+                            override fun onResponse(
+                                call: Call<ResponseBody>,
+                                response: Response<ResponseBody>
+                            ) {
+                                if (response.isSuccessful) {
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        accountManager.setUserData(
+                                            account, AccountManager.KEY_LAST_AUTHENTICATED_TIME,
+                                            LocalDate.now().toString()
+                                        )
+                                        accountManager.setUserData(
+                                            account, AccountManager.KEY_AUTHTOKEN,
+                                            response.body().toString()
+                                        )
+                                        onSelect(
+                                            accountManager.getUserData(
+                                                account,
+                                                AccountManager.KEY_AUTHTOKEN
+                                            )
+                                        )
+                                    }
+                                } else {
+                                    onUserDismiss()
+                                }
+                            }
+
+                            override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
+                                TODO("Not yet implemented")
+                            }
+                        }
+                        )
                     }
 
                 }
                 alertBuilder.setPositiveButton(
                     "Create new account"
-                ) { dialog, which ->
+                ) { _, _ ->
                     onCreateNewAccount()
                 }
                 alertBuilder.create().show()
-            }
-            else{
+            } else {
                 onCreateNewAccount()
             }
-        }catch (e : Exception ) {
+        } catch (e: Exception) {
             onCreateNewAccount()
         }
     }
@@ -272,6 +285,7 @@ object DAuth {
     fun addUser() {
         TODO("To be implemented")
     }
+
     private fun createDialog(context: Context, onCreateNewAccount: () -> Unit) {
     }
 }

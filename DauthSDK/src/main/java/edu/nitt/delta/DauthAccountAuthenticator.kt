@@ -1,4 +1,5 @@
 package edu.nitt.delta
+
 import android.accounts.AbstractAccountAuthenticator
 import android.accounts.Account
 import android.accounts.AccountAuthenticatorResponse
@@ -6,14 +7,16 @@ import android.accounts.AccountManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+
 class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator(context) {
-   private val mContext = context
+    private val mContext = context
     override fun editProperties(
         response: AccountAuthenticatorResponse?,
         accountType: String?
     ): Bundle {
         TODO("Not yet implemented")
     }
+
     override fun addAccount(
         response: AccountAuthenticatorResponse?,
         accountType: String?,
@@ -30,6 +33,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         bundle.putParcelable(AccountManager.KEY_INTENT, intent)
         return bundle
     }
+
     override fun confirmCredentials(
         response: AccountAuthenticatorResponse?,
         account: Account?,
