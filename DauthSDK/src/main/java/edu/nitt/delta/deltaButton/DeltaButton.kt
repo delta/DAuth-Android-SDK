@@ -44,7 +44,6 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         setStyle(R.color.default_background_color, context)
     }
 
-
     private fun setStyle(color: Int, context: Context) {
         setTextColor(textColors)
         setText(R.string.login_button_text)
@@ -138,8 +137,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
             mSrcRect = Rect(0, 0, mIcon!!.width, mIcon!!.height)
         }
     }
-
-
+    
     private fun setDefaultValues(context: Context, logo: Int) {
         mIcon = drawableToBitmap(ContextCompat.getDrawable(context, logo)!!)
         mIconSize = convertDpToPixel(20f, context).toInt()
@@ -147,6 +145,5 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         mRoundedCorner = false
         mTransparentBackground = false
         mRoundedCornerRadius = convertDpToPixel(8f, context).toInt()
-
     }
 }

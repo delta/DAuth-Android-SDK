@@ -1,8 +1,10 @@
 package edu.nitt.delta
 
 import android.os.Bundle
+import android.view.View
 import android.widget.Button
 import androidx.appcompat.app.AppCompatActivity
+import edu.nitt.delta.deltaButton.DeltaButton
 import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.GrantType
@@ -14,7 +16,7 @@ class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        val signInButton: Button = findViewById(R.id.sign_in_button)
+        val signInButton: DeltaButton = findViewById(R.id.sign_in_button)
         signInButton.setOnClickListener {
             DAuth.signIn(
                 context = this,
@@ -35,5 +37,6 @@ class MainActivity : AppCompatActivity() {
                     }
                 })
         }
+       
     }
 }
