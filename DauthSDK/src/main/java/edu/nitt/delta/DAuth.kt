@@ -13,26 +13,26 @@ import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
 import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
+import edu.nitt.delta.helpers.toMap
 import edu.nitt.delta.interfaces.SignInListener
+import edu.nitt.delta.models.AuthorizationErrorType
+import edu.nitt.delta.models.AuthorizationRequest
+import edu.nitt.delta.models.AuthorizationResponse
+import edu.nitt.delta.models.ClientCredentials
+import edu.nitt.delta.models.Scope
+import edu.nitt.delta.models.Token
+import edu.nitt.delta.models.TokenRequest
+import edu.nitt.delta.models.User
+import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import android.os.Build
-import edu.nitt.delta.helpers.toMap
-import edu.nitt.delta.models.AuthorizationRequest
-import edu.nitt.delta.models.ClientCredentials
-import edu.nitt.delta.models.Token
-import edu.nitt.delta.models.TokenRequest
-import edu.nitt.delta.models.AuthorizationErrorType
-import edu.nitt.delta.models.AuthorizationResponse
-import edu.nitt.delta.models.Scope
-import edu.nitt.delta.models.User
-import okhttp3.ResponseBody
-import java.time.LocalDate
-import java.time.Period
+import java.text.SimpleDateFormat
+import java.util.*
 
 
 object DAuth {
+
     private var currentUser: User? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
@@ -178,11 +178,16 @@ object DAuth {
                 null,
                 context as Activity?,
                 { Result ->
-                    onSuccess(accountManager.getUserData(Account(Result.
-                    result.
-                    getString(AccountManager.KEY_ACCOUNT_NAME),DAuthConstants.ACCOUNT_TYPE),AccountManager.KEY_AUTHTOKEN))
+                    onSuccess(
+                        accountManager.getUserData(
+                            Account(
+                                Result.result.getString(AccountManager.KEY_ACCOUNT_NAME),
+                                DAuthConstants.ACCOUNT_TYPE
+                            ), AccountManager.KEY_AUTHTOKEN
+                        )
+                    )
                 },
-            null
+                null
             )
         },
         onUserDismiss = onUserDismiss,
@@ -209,21 +214,16 @@ object DAuth {
                 }
                 alertBuilder.setItems(accountNames) { _, whichButton ->
                     val account = Account(accountNames[whichButton], DAuthConstants.ACCOUNT_TYPE)
-                    val fromLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    val duedate =
                         accountManager.getUserData(
                             account,
                             AccountManager.KEY_LAST_AUTHENTICATED_TIME
                         )
-                    } else {
-                        TODO("VERSION.SDK_INT < M")
-                    }
-                    val toLocalDate = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        LocalDate.now()
-                    } else {
-                        TODO("VERSION.SDK_INT < O")
-                    }
-                    val period: Period = Period.between(LocalDate.parse(fromLocalDate), toLocalDate)
-                    if (period.days < 30) {
+                    val formatter = SimpleDateFormat("dd/MM/yyyy");
+                    val currentdate = Date();
+                    if (currentdate.compareTo(formatter.parse(duedate))<0)
+
+                    {
                         onSelect(
                             accountManager.getUserData(
                                 account,
@@ -240,22 +240,32 @@ object DAuth {
                                 response: Response<ResponseBody>
                             ) {
                                 if (response.isSuccessful) {
-                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                                        accountManager.setUserData(
-                                            account, AccountManager.KEY_LAST_AUTHENTICATED_TIME,
-                                            LocalDate.now().toString()
-                                        )
-                                        accountManager.setUserData(
-                                            account, AccountManager.KEY_AUTHTOKEN,
-                                            response.body().toString()
-                                        )
-                                        onSelect(
-                                            accountManager.getUserData(
-                                                account,
-                                                AccountManager.KEY_AUTHTOKEN
-                                            )
-                                        )
+                                    var cookie=""
+                                    for(i in response.headers().get("Set-Cookie").toString()){
+                                        if(i==';')
+                                            break
+                                        else cookie+=i
                                     }
+                                    var df = SimpleDateFormat("dd/MM/yyyy")
+                                    val c1 = Calendar.getInstance()
+                                    c1.add(Calendar.DAY_OF_YEAR, 30)
+                                    df = SimpleDateFormat("dd/MM/yyyy")
+                                    val resultDate = c1.time
+                                    val dueDate: String = df.format(resultDate)
+                                    accountManager.setUserData(
+                                        account, AccountManager.KEY_LAST_AUTHENTICATED_TIME,
+                                    dueDate)
+                                    accountManager.setUserData(
+                                        account, AccountManager.KEY_AUTHTOKEN,
+                                        cookie
+                                    )
+
+                                    onSelect(
+                                        accountManager.getUserData(
+                                            account,
+                                            AccountManager.KEY_AUTHTOKEN
+                                        )
+                                    )
                                 } else {
                                     onUserDismiss()
                                 }
@@ -282,5 +292,4 @@ object DAuth {
             onCreateNewAccount()
         }
     }
-
 }

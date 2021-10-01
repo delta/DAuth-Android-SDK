@@ -5,23 +5,26 @@ import android.accounts.AccountAuthenticatorResponse
 import android.accounts.AccountManager
 import android.app.Activity
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
-import androidx.annotation.RequiresApi
 import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
-import java.time.LocalDate
+import java.text.SimpleDateFormat
+import java.util.Calendar
+import java.util.Date
+
 
 class DAuthAuthenticatorActivity : Activity() {
+
     private lateinit var email: String
     private lateinit var password: String
 
-    @RequiresApi(Build.VERSION_CODES.M)
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dauth_authenticator)
-        val response=intent.getParcelableExtra<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
+        val response =
+            intent.getParcelableExtra<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
         val uri: Uri = Uri.Builder()
             .scheme(DAuthConstants.SCHEME)
             .authority(DAuthConstants.BASE_AUTHORITY)
@@ -40,17 +43,29 @@ class DAuthAuthenticatorActivity : Activity() {
                     AccountManager.KEY_AUTHTOKEN,
                     retrieveCookie(uri.scheme + "://" + uri.encodedAuthority)
                 )
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    bundle.putString(
-                        AccountManager.KEY_LAST_AUTHENTICATED_TIME,
-                        LocalDate.now().toString()
+
+                val date = Date()
+                var df = SimpleDateFormat("dd/MM/yyyy")
+                val c1 = Calendar.getInstance()
+                val currentDate: String = df.format(date)
+                c1.add(Calendar.DAY_OF_YEAR, 30)
+                df = SimpleDateFormat("dd/MM/yyyy")
+                val resultDate = c1.time
+                val dueDate: String = df.format(resultDate)
+                bundle.putString(
+                    AccountManager.KEY_LAST_AUTHENTICATED_TIME,
+                    dueDate
+                )
+
+                bundle.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
+                if (accountManager.addAccountExplicitly(account, password, bundle))
+                    response?.onResult(bundle)
+                else if (account in accountManager.accounts) {
+                    accountManager.setUserData(
+                        account,
+                        AccountManager.KEY_AUTHTOKEN,
+                        bundle.getString(AccountManager.KEY_AUTHTOKEN)
                     )
-                }
-                bundle.putString(AccountManager.KEY_ACCOUNT_NAME,account.name)
-                if(accountManager.addAccountExplicitly(account,password,bundle))
-                response?.onResult(bundle)
-                else if(account in accountManager.accounts){
-                    accountManager.setUserData(account,AccountManager.KEY_AUTHTOKEN,bundle.getString(AccountManager.KEY_AUTHTOKEN))
                     response?.onResult(bundle)
                 }
                 finish()
