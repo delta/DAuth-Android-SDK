@@ -10,8 +10,8 @@ import edu.nitt.delta.helpers.DAuthConstants
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
 import java.text.SimpleDateFormat
-import java.util.Calendar
 import java.util.Date
+import java.util.Calendar
 
 
 class DAuthAuthenticatorActivity : Activity() {
