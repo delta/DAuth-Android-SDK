@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="sign_in_with_delta">Sign in with Delta</string>
+    <string name="account_manager_label">DAuth</string>
+    <string name="accountType">auth.delta.nitt.edu</string>
 </resources>
