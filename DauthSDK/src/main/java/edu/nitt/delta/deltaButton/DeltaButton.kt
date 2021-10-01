@@ -30,7 +30,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
     constructor(context: Context) : super(context)
 
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
-        init(context, attrs, R.drawable.deltalogo)
+        init(context, attrs, R.drawable.delta_logo)
         setStyle(R.color.default_background_color, context)
     }
 
@@ -40,7 +40,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         defStyleAttr: Int,
     ) :
             super(context, attrs, defStyleAttr) {
-        init(context, attrs, R.drawable.deltalogo)
+        init(context, attrs, R.drawable.delta_logo)
         setStyle(R.color.default_background_color, context)
     }
 

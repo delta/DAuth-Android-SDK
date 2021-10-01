@@ -12,7 +12,6 @@
         android:layout_height="wrap_content"
         app:roundedCorner="true"
         app:roundedCornerRadius="8dp"
-        android:background="@color/black"
         android:textAllCaps="false"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintLeft_toLeftOf="parent"
