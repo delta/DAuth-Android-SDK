@@ -4,7 +4,6 @@ import android.accounts.Account
 import android.accounts.AccountManager
 import android.app.Activity
 import android.app.AlertDialog
-import android.content.Context
 import android.net.Uri
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.helpers.DAuthConstants
@@ -14,15 +13,11 @@ import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
+import edu.nitt.delta.interfaces.AuthorizationListener
+import edu.nitt.delta.interfaces.FetchTokenListener
+import edu.nitt.delta.interfaces.FetchUserDetailsListener
 import edu.nitt.delta.interfaces.SignInListener
-import edu.nitt.delta.models.AuthorizationErrorType
-import edu.nitt.delta.models.AuthorizationRequest
-import edu.nitt.delta.models.AuthorizationResponse
-import edu.nitt.delta.models.ClientCredentials
-import edu.nitt.delta.models.Scope
-import edu.nitt.delta.models.Token
-import edu.nitt.delta.models.TokenRequest
-import edu.nitt.delta.models.User
+import edu.nitt.delta.models.*
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
@@ -41,173 +36,245 @@ object DAuth {
     )
 
     fun signIn(
-        context: Context,
-        authRequest: AuthorizationRequest,
+        activity: Activity,
+        authorizationRequest: AuthorizationRequest,
         signInListener: SignInListener
-    ) = requestAuthorization(
-        context,
-        authRequest,
-        onFailure = { errorState -> signInListener.onFailure(Exception(errorState.toString())) }
-    ) { authResponse ->
-        fetchToken(
-            TokenRequest(
-                client_id = clientCreds.clientId,
-                client_secret = clientCreds.clientSecret,
-                grant_type = authRequest.grant_type.toString(),
-                code = authResponse.authorizationCode,
-                redirect_uri = clientCreds.redirectUri
-            ),
-            onFailure = { e -> signInListener.onFailure(e) }
-        ) { token ->
-            fetchUserDetails(
-                token.access_token,
-                onFailure = { e -> signInListener.onFailure(e) }
-            ) { user ->
-                currentUser = user
-                signInListener.onSuccess(user)
-                // TODO: 9/22/2021 Store User object locally
+    ) {
+        signIn(
+            activity,
+            authorizationRequest,
+            onSuccess = {user -> signInListener.onSuccess(user)},
+            onFailure = {exception -> signInListener.onFailure(exception) }
+        )
+    }
+
+    fun signIn(
+        activity: Activity,
+        authorizationRequest: AuthorizationRequest,
+        onSuccess: (User) -> Unit,
+        onFailure: (Exception) -> Unit
+    ){
+        requestAuthorization(
+            activity,
+            authorizationRequest,
+            onFailure = { errorState -> onFailure(Exception(errorState.toString())) },
+            onSuccess = { authorizationResponse ->
+                if (authorizationResponse.state == authorizationRequest.state) {
+                    fetchToken(
+                        TokenRequest(
+                            client_id = clientCreds.clientId,
+                            client_secret = clientCreds.clientSecret,
+                            grant_type = authorizationRequest.grant_type.toString(),
+                            code = authorizationResponse.authorizationCode,
+                            redirect_uri = clientCreds.redirectUri
+                        ),
+                        onFailure = { e -> onFailure(e) },
+                        onSuccess = { token ->
+                            fetchUserDetails(
+                                token.access_token,
+                                onFailure = { e -> onFailure(e) }
+                            ) { user ->
+                                currentUser = user
+                                onSuccess(user)
+                            }
+                        }
+                    )
+                }else{
+                    onFailure(Exception(AuthorizationErrorType.AuthorizationDenied.toString()))
+                }
             }
-        }
+        )
+    }
+
+    fun requestAuthorization(
+        activity: Activity,
+        authorizationRequest: AuthorizationRequest,
+        authorizationListener: AuthorizationListener
+    ) {
+        requestAuthorization(
+            activity,
+            authorizationRequest,
+            onFailure = {authorizationErrorType -> authorizationListener.onFailure(authorizationErrorType) },
+            onSuccess = {authorizationResponse -> authorizationListener.onSuccess(authorizationResponse) }
+        )
     }
 
     // to request for authorization use authorizationRequest members as query parameters
-    private fun requestAuthorization(
-        context: Context,
-        authRequest: AuthorizationRequest,
+    fun requestAuthorization(
+        activity: Activity,
+        authorizationRequest: AuthorizationRequest,
         onFailure: (AuthorizationErrorType) -> Unit,
         onSuccess: (AuthorizationResponse) -> Unit
-    ) = if (isNetworkAvailable(context)) selectAccount(
-        context,
-        onFailure = { onFailure(AuthorizationErrorType.InternalError) },
-        onUserDismiss = { onFailure(AuthorizationErrorType.UserDismissed) }
-    ) { cookie ->
-        val uri: Uri = Uri.Builder()
-            .scheme(SCHEME)
-            .authority(BASE_AUTHORITY)
-            .appendPath("authorize")
-            .appendQueryParameter("client_id", clientCreds.clientId)
-            .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
-            .appendQueryParameter("response_type", authRequest.response_type.toString())
-            .appendQueryParameter("grant_type", authRequest.grant_type.toString())
-            .appendQueryParameter("state", authRequest.state)
-            .appendQueryParameter("scope", Scope.combineScopes(authRequest.scopes))
-            .appendQueryParameter("nonce", authRequest.nonce)
-            .build()
-        val alertDialog = openWebView(context, uri, cookie) { url ->
-            val uri: Uri = Uri.parse(url)
-            if (url.startsWith(clientCreds.redirectUri)) {
-                if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
-                    onFailure(AuthorizationErrorType.AuthorizationDenied)
-                } else {
-                    val authorizationResponse = AuthorizationResponse(
-                        uri.getQueryParameter("code") ?: "",
-                        uri.getQueryParameter("state") ?: ""
-                    )
-                    onSuccess(authorizationResponse)
+    ) {
+        if (!isNetworkAvailable(activity)){
+            onFailure(AuthorizationErrorType.NetworkError)
+        }
+        selectAccount(
+            activity,
+            onFailure = { onFailure(AuthorizationErrorType.InternalError) },
+            onUserDismiss = { onFailure(AuthorizationErrorType.UserDismissed) },
+            onSuccess = { cookie ->
+                val uri: Uri = Uri.Builder()
+                    .scheme(SCHEME)
+                    .authority(BASE_AUTHORITY)
+                    .appendPath("authorize")
+                    .appendQueryParameter("client_id", clientCreds.clientId)
+                    .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
+
+                    .appendQueryParameter("response_type", authorizationRequest.response_type.toString())
+                    .appendQueryParameter("grant_type", authorizationRequest.grant_type.toString())
+                    .appendQueryParameter("state", authorizationRequest.state)
+                    .appendQueryParameter("scope", Scope.combineScopes(authorizationRequest.scopes))
+                    .appendQueryParameter("nonce", authorizationRequest.nonce)
+                    .build()
+                val alertDialog = openWebView(
+                    activity,
+                    uri,
+                    cookie){ url ->
+                        val uri: Uri = Uri.parse(url)
+                        if (url.startsWith(clientCreds.redirectUri)) {
+                            if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
+                                onFailure(AuthorizationErrorType.AuthorizationDenied)
+                            } else {
+                                val authorizationResponse = AuthorizationResponse(
+                                    uri.getQueryParameter("code") ?: "",
+                                    uri.getQueryParameter("state") ?: ""
+                                )
+                                onSuccess(authorizationResponse)
+                            }
+                            return@openWebView false
+                        }
+                        if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
+                            onFailure(AuthorizationErrorType.InternalError)
+                            return@openWebView false
+                        }
+                        if (uri.path == "/dashboard") {
+                            onFailure(AuthorizationErrorType.InternalError)
+                            return@openWebView false
+                        }
+                        return@openWebView true
+                    }
+                alertDialog.setOnDismissListener {
+                    onFailure(AuthorizationErrorType.UserDismissed)
                 }
-                return@openWebView false
             }
-            if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
-                onFailure(AuthorizationErrorType.InternalError)
-                return@openWebView false
-            }
-            if (uri.path == "/dashboard") {
-                onFailure(AuthorizationErrorType.InternalError)
-                return@openWebView false
-            }
-            return@openWebView true
-        }
-        alertDialog.setOnDismissListener {
-            onFailure(AuthorizationErrorType.UserDismissed)
-        }
-    } else onFailure(AuthorizationErrorType.NetworkError)
+        )
+    }
+
+    fun fetchToken(
+        request: TokenRequest,
+        fetchTokenListener: FetchTokenListener
+    ){
+        fetchToken(
+            request,
+            onFailure = {exception -> fetchTokenListener.onFailure(exception)},
+            onSuccess = {token -> fetchTokenListener.onSuccess(token) }
+        )
+    }
 
     //to request token use tokenRequest members as query parameters
-    private fun fetchToken(
+    fun fetchToken(
         request: TokenRequest,
         onFailure: (Exception) -> Unit,
         onSuccess: (Token) -> Unit
-    ) = RetrofitInstance.api.getToken(request.toMap()).enqueue(object : Callback<Token> {
-        override fun onResponse(call: Call<Token>, response: Response<Token>) {
-            if (!response.isSuccessful) {
-                onFailure(Exception(response.code().toString()))
-                return
+    ) {
+        RetrofitInstance.api.getToken(request.toMap()).enqueue(object : Callback<Token> {
+            override fun onResponse(call: Call<Token>, response: Response<Token>) {
+                if (!response.isSuccessful) {
+                    onFailure(Exception(response.code().toString()))
+                    return
+                }
+
+                response.body()?.let { onSuccess(it) }
             }
 
-            response.body()?.let { onSuccess(it) }
-        }
+            override fun onFailure(call: Call<Token>, t: Throwable) {
+                onFailure(Exception(t.message))
+            }
+        })
+    }
 
-        override fun onFailure(call: Call<Token>, t: Throwable) {
-            onFailure(Exception(t.message))
-        }
-    })
+    fun fetchUserDetails(
+        accessToken: String,
+        fetchUserDetailsListener: FetchUserDetailsListener
+    ){
+        fetchUserDetails(
+            accessToken,
+            onFailure = {exception -> fetchUserDetailsListener.onFailure(exception)},
+            onSuccess = {user -> fetchUserDetailsListener.onSuccess(user)}
+        )
+    }
 
-    private fun fetchUserDetails(
+    fun fetchUserDetails(
         accessToken: String,
         onFailure: (Exception) -> Unit,
         onSuccess: (User) -> Unit
-    ) = RetrofitInstance.api.getUser("Bearer $accessToken").enqueue(object : Callback<User> {
-        override fun onResponse(call: Call<User>, response: Response<User>) {
-            if (!response.isSuccessful) {
-                onFailure(Exception(response.code().toString()))
-                return
+    ) {
+        RetrofitInstance.api.getUser("Bearer $accessToken").enqueue(object : Callback<User> {
+            override fun onResponse(call: Call<User>, response: Response<User>) {
+                if (!response.isSuccessful) {
+                    onFailure(Exception(response.code().toString()))
+                    return
+                }
+                response.body()?.let { onSuccess(it) }
             }
-            response.body()?.let { onSuccess(it) }
-        }
 
-        override fun onFailure(call: Call<User>, t: Throwable) {
-            onFailure(Exception(t.message))
-        }
-    })
+            override fun onFailure(call: Call<User>, t: Throwable) {
+                onFailure(Exception(t.message))
+            }
+        })
+    }
 
     fun getCurrentUser(): User? = currentUser
 
     private fun selectAccount(
-        context: Context,
+        activity: Activity,
         onFailure: () -> Unit,
         onUserDismiss: () -> Unit,
         onSuccess: (cookie: String) -> Unit
-    ) = selectAccountFromAccountManager(
-        context,
-        onCreateNewAccount = {
-            val accountManager = AccountManager.get(context)
-            accountManager.addAccount(
-                DAuthConstants.ACCOUNT_TYPE,
-                null,
-                null,
-                null,
-                context as Activity?,
-                { Result ->
-                    onSuccess(
-                        accountManager.getUserData(
-                            Account(
-                                Result.result.getString(AccountManager.KEY_ACCOUNT_NAME),
-                                DAuthConstants.ACCOUNT_TYPE
-                            ), AccountManager.KEY_AUTHTOKEN
+    ) {
+        selectAccountFromAccountManager(
+            activity,
+            onCreateNewAccount = {
+                val accountManager = AccountManager.get(activity)
+                accountManager.addAccount(
+                    DAuthConstants.ACCOUNT_TYPE,
+                    null,
+                    null,
+                    null,
+                    activity,
+                    { Result ->
+                        onSuccess(
+                            accountManager.getUserData(
+                                Account(
+                                    Result.result.getString(AccountManager.KEY_ACCOUNT_NAME),
+                                    DAuthConstants.ACCOUNT_TYPE
+                                ), AccountManager.KEY_AUTHTOKEN
+                            )
                         )
-                    )
-                },
-                null
-            )
-        },
-        onUserDismiss = onUserDismiss,
-        onSelect = onSuccess,
-        onFailure = onFailure
-    )
+                    },
+                    null
+                )
+            },
+            onUserDismiss = onUserDismiss,
+            onSelect = onSuccess,
+            onFailure = onFailure
+        )
+    }
 
     private fun selectAccountFromAccountManager(
-        context: Context,
+        activity: Activity,
         onCreateNewAccount: () -> Unit,
         onUserDismiss: () -> Unit,
         onSelect: (cookie: String) -> Unit,
         onFailure: () -> Unit
     ) {
         try {
-            val accountManager = AccountManager.get(context)
+            val accountManager = AccountManager.get(activity)
             val items = accountManager.getAccountsByType(DAuthConstants.ACCOUNT_TYPE)
             if (items.isNotEmpty()) {
                 val accountNames: Array<String> = Array(items.size) { "null" }
-                val alertBuilder = AlertDialog.Builder(context)
+                val alertBuilder = AlertDialog.Builder(activity)
                 alertBuilder.setTitle("Select an account")
                 for (i in items.indices) {
                     accountNames[i] = items[i].name
