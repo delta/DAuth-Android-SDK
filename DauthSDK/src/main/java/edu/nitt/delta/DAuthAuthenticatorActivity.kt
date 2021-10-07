@@ -7,11 +7,10 @@ import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import edu.nitt.delta.helpers.DAuthConstants
+import edu.nitt.delta.helpers.getDateString
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Calendar
+import java.util.*
 
 
 class DAuthAuthenticatorActivity : Activity() {
@@ -44,19 +43,11 @@ class DAuthAuthenticatorActivity : Activity() {
                     retrieveCookie(uri.scheme + "://" + uri.encodedAuthority)
                 )
 
-                val date = Date()
-                var df = SimpleDateFormat("dd/MM/yyyy")
                 val c1 = Calendar.getInstance()
-                val currentDate: String = df.format(date)
                 c1.add(Calendar.DAY_OF_YEAR, 30)
-                df = SimpleDateFormat("dd/MM/yyyy")
                 val resultDate = c1.time
-                val dueDate: String = df.format(resultDate)
-                bundle.putString(
-                    AccountManager.KEY_LAST_AUTHENTICATED_TIME,
-                    dueDate
-                )
-
+                val dueDate: String = resultDate.getDateString("dd/MM/yyyy")
+                bundle.putString(AccountManager.KEY_LAST_AUTHENTICATED_TIME, dueDate)
                 bundle.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
                 if (accountManager.addAccountExplicitly(account, password, bundle))
                     response?.onResult(bundle)
