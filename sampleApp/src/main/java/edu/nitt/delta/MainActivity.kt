@@ -3,7 +3,6 @@ package edu.nitt.delta
 import android.os.Bundle
 import androidx.appcompat.app.AppCompatActivity
 import edu.nitt.delta.deltaButton.DeltaButton
-import edu.nitt.delta.interfaces.SignInListener
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.GrantType
 import edu.nitt.delta.models.ResponseType
