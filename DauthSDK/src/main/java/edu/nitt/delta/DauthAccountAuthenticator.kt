@@ -57,6 +57,8 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
             account,
             AccountManager.KEY_AUTHTOKEN
         )
+        bundle.putString(AccountManager.KEY_ACCOUNT_TYPE, account?.type)
+        bundle.putString(AccountManager.KEY_ACCOUNT_NAME, account?.name)
         bundle.putString(AccountManager.KEY_AUTHTOKEN, authToken)
         response?.onResult(bundle)
     }
@@ -72,6 +74,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         val currentDate = Date()
         if (currentDate < dueDate) {
             returnAuthToken(account, response)
+            return Bundle()
         }else{
             if (account == null){
                 response?.onError(404, "Account Not Found")
