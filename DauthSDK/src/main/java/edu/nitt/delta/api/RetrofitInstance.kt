@@ -10,7 +10,7 @@ import retrofit2.converter.gson.GsonConverterFactory
  */
 internal object RetrofitInstance {
     /**
-     * Base url of the Delta OAuth2 Service
+     * Base url of the [Delta OAuth2 Service](https://auth.delta.nitt.edu/)
      */
     private const val BaseUrl = "https://auth.delta.nitt.edu"
 
@@ -24,6 +24,9 @@ internal object RetrofitInstance {
      */
     private val okHttpClient = OkHttpClient.Builder().addInterceptor(logger)
 
+    /**
+     * Value Instance of the [Retrofit] class with custom builder params
+     */
     private val retrofit = Retrofit.Builder().baseUrl(BaseUrl)
         .addConverterFactory(GsonConverterFactory.create())
         .client(okHttpClient.build())

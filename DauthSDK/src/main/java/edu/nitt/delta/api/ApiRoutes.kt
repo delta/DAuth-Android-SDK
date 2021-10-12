@@ -1,7 +1,7 @@
 package edu.nitt.delta.api
 
 /**
- * Singleton object containing the api routes
+ * Singleton object containing the [api routes](https://delta.github.io/DAuth-Docs/#endpoints)
  */
 internal object ApiRoutes {
     /**
