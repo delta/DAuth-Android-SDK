@@ -13,4 +13,9 @@ internal object ApiRoutes {
      * User route
      */
     const val User = "/api/resources/user"
+
+    /**
+     * Login route
+     */
+    const val Login = "/api/auth/login"
 }
