@@ -250,7 +250,16 @@ object DAuth {
                     activity,
                     { Result ->
                         try {
-                            onSuccess(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
+                            val account = Account(Result!!.result.getString(AccountManager.KEY_ACCOUNT_NAME)!!, DAuthConstants.ACCOUNT_TYPE)
+                            accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
+                                { Result ->
+                                    try {
+                                        onSuccess(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
+                                    } catch (e: Exception) {
+                                        onFailure()
+                                    }
+                                }, null
+                            )
                         }catch (e: Exception){
                             onFailure()
                         }
@@ -288,7 +297,7 @@ object DAuth {
             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                 { Result ->
                     try {
-                        onSelect(Result!!.result.getString("Cookie")!!)
+                        onSelect(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
                     } catch (e: Exception) {
                         onFailure()
                     }

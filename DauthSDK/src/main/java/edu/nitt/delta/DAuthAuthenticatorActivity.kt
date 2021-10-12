@@ -38,19 +38,17 @@ class DAuthAuthenticatorActivity : Activity() {
                 val account =
                     Account(email, DAuthConstants.ACCOUNT_TYPE)
                 val bundle = Bundle()
-                bundle.putString(
-                    AccountManager.KEY_AUTHTOKEN,
-                    retrieveCookie(uri.scheme + "://" + uri.encodedAuthority)
-                )
-
+                bundle.putString(AccountManager.KEY_AUTHTOKEN, retrieveCookie(uri.scheme + "://" + uri.encodedAuthority))
                 val c1 = Calendar.getInstance()
                 c1.add(Calendar.DAY_OF_YEAR, 30)
                 val resultDate = c1.time
                 val dueDate: String = resultDate.getDateString("dd/MM/yyyy")
                 bundle.putString(AccountManager.KEY_LAST_AUTHENTICATED_TIME, dueDate)
                 bundle.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
-                if (accountManager.addAccountExplicitly(account, password, bundle))
+                bundle.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type)
+                if (accountManager.addAccountExplicitly(account, password, bundle)) {
                     response?.onResult(bundle)
+                }
                 else if (account in accountManager.accounts) {
                     accountManager.setUserData(
                         account,
