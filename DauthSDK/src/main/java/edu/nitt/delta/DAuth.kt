@@ -13,10 +13,7 @@ import edu.nitt.delta.helpers.DAuthConstants.SCHEME
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
-import edu.nitt.delta.interfaces.AuthorizationListener
-import edu.nitt.delta.interfaces.FetchTokenListener
-import edu.nitt.delta.interfaces.FetchUserDetailsListener
-import edu.nitt.delta.interfaces.SignInListener
+import edu.nitt.delta.interfaces.ResultListener
 import edu.nitt.delta.models.AuthorizationErrorType
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.AuthorizationResponse
@@ -30,7 +27,6 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.util.*
 
-
 object DAuth {
 
     private var currentUser: User? = null
@@ -43,7 +39,7 @@ object DAuth {
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
-        signInListener: SignInListener
+        signInListener: ResultListener<User>
     ) {
         signIn(
             activity,
@@ -94,12 +90,12 @@ object DAuth {
     fun requestAuthorization(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
-        authorizationListener: AuthorizationListener
+        authorizationListener: ResultListener<AuthorizationResponse>
     ) {
         requestAuthorization(
             activity,
             authorizationRequest,
-            onFailure = {authorizationErrorType -> authorizationListener.onFailure(authorizationErrorType) },
+            onFailure = {authorizationErrorType -> authorizationListener.onFailure(Exception("$authorizationErrorType")) },
             onSuccess = {authorizationResponse -> authorizationListener.onSuccess(authorizationResponse) }
         )
     }
@@ -168,7 +164,7 @@ object DAuth {
 
     fun fetchToken(
         request: TokenRequest,
-        fetchTokenListener: FetchTokenListener
+        fetchTokenListener: ResultListener<Token>
     ){
         fetchToken(
             request,
@@ -201,7 +197,7 @@ object DAuth {
 
     fun fetchUserDetails(
         accessToken: String,
-        fetchUserDetailsListener: FetchUserDetailsListener
+        fetchUserDetailsListener: ResultListener<User>
     ){
         fetchUserDetails(
             accessToken,
