@@ -7,7 +7,6 @@ import android.accounts.AccountManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
-import android.util.Log
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.helpers.getDateFromString
 import edu.nitt.delta.helpers.getDateString
@@ -70,14 +69,11 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         authTokenType: String?,
         options: Bundle?
     ): Bundle {
-        Log.d("Hello","Hi")
         val dueDateString = accountManager.getUserData(account, AccountManager.KEY_LAST_AUTHENTICATED_TIME)
         val dueDate = getDateFromString(dueDateString, "dd/MM/yyyy")
         val currentDate = Date()
         if (currentDate < dueDate) {
-            Log.d("Hello","Hi")
             returnAuthToken(account, response)
-            Log.d("Hello","Hi")
             return Bundle()
         }else{
             if (account == null){
