@@ -6,10 +6,10 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.net.Uri
 import edu.nitt.delta.api.RetrofitInstance
-import edu.nitt.delta.helpers.DAuthConstants
-import edu.nitt.delta.helpers.DAuthConstants.BASE_AUTHORITY
-import edu.nitt.delta.helpers.DAuthConstants.BASE_URL
-import edu.nitt.delta.helpers.DAuthConstants.SCHEME
+import edu.nitt.delta.constants.AccountManagerConstants
+import edu.nitt.delta.constants.WebViewConstants.BaseAuthority
+import edu.nitt.delta.constants.WebViewConstants.BaseUrl
+import edu.nitt.delta.constants.WebViewConstants.Scheme
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
@@ -116,8 +116,8 @@ object DAuth {
             onUserDismiss = { onFailure(AuthorizationErrorType.UserDismissed) },
             onSuccess = { cookie ->
                 val uri: Uri = Uri.Builder()
-                    .scheme(SCHEME)
-                    .authority(BASE_AUTHORITY)
+                    .scheme(Scheme)
+                    .authority(BaseAuthority)
                     .appendPath("authorize")
                     .appendQueryParameter("client_id", clientCreds.clientId)
                     .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
@@ -146,7 +146,7 @@ object DAuth {
                             }
                             return@openWebView false
                         }
-                        if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BASE_URL)) {
+                        if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BaseUrl)) {
                             onFailure(AuthorizationErrorType.InternalError)
                             return@openWebView false
                         }
@@ -240,14 +240,14 @@ object DAuth {
             onCreateNewAccount = {
                 val accountManager = AccountManager.get(activity)
                 accountManager.addAccount(
-                    DAuthConstants.ACCOUNT_TYPE,
+                    AccountManagerConstants.AccountType,
                     null,
                     null,
                     null,
                     activity,
                     { Result ->
                         try {
-                            val account = Account(Result!!.result.getString(AccountManager.KEY_ACCOUNT_NAME)!!, DAuthConstants.ACCOUNT_TYPE)
+                            val account = Account(Result!!.result.getString(AccountManager.KEY_ACCOUNT_NAME)!!, AccountManagerConstants.AccountType)
                             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                                 { Result ->
                                     try {
@@ -278,7 +278,7 @@ object DAuth {
         onFailure: () -> Unit
     ) {
         val accountManager = AccountManager.get(activity)
-        val items = accountManager.getAccountsByType(DAuthConstants.ACCOUNT_TYPE)
+        val items = accountManager.getAccountsByType(AccountManagerConstants.AccountType)
         if (items.isEmpty()) {
             onCreateNewAccount()
             return
@@ -290,7 +290,7 @@ object DAuth {
             accountNames[i] = items[i].name
         }
         alertBuilder.setItems(accountNames) { _, index ->
-            val account = Account(accountNames[index], DAuthConstants.ACCOUNT_TYPE)
+            val account = Account(accountNames[index], AccountManagerConstants.AccountType)
             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                 { Result ->
                     try {
