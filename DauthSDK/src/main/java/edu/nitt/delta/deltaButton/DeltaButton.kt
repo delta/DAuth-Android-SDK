@@ -11,7 +11,7 @@ import android.graphics.Paint
 import android.graphics.Rect
 import androidx.core.content.ContextCompat
 import edu.nitt.delta.R
-import edu.nitt.delta.helpers.ViewUtils.convertDpToPixel
+import edu.nitt.delta.helpers.ViewUtils.dpToPixel
 import edu.nitt.delta.helpers.ViewUtils.drawableToBitmap
 
 /**
@@ -100,8 +100,8 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         drawable.invalidateSelf()
         background = drawable
         setPadding(
-            convertDpToPixel(30f, context).toInt(), 0,
-            convertDpToPixel(30f, context).toInt(), 0
+            dpToPixel(30f, context).toInt(), 0,
+            dpToPixel(30f, context).toInt(), 0
         )
     }
 
@@ -141,7 +141,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
 
         // Don't add padding when text isn't present
         if (attrs.getAttributeValue("http://schemas.android.com/apk/res/android", "text") != null) {
-            mIconPadding = convertDpToPixel(20f, context).toInt()
+            mIconPadding = dpToPixel(20f, context).toInt()
         }
 
         textColors = array.getColor(R.styleable.DeltaButton_android_textColor, Color.WHITE)
@@ -152,7 +152,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
             if (attr == R.styleable.DeltaButton_iconPadding) {
                 mIconPadding = array.getDimensionPixelSize(
                     attr,
-                    convertDpToPixel(20f, context).toInt()
+                    dpToPixel(20f, context).toInt()
                 )
             }
             if (attr == R.styleable.DeltaButton_iconCenterAligned) {
@@ -161,7 +161,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
             if (attr == R.styleable.DeltaButton_iconSize) {
                 mIconSize = array.getDimensionPixelSize(
                     attr,
-                    convertDpToPixel(20f, context).toInt()
+                    dpToPixel(20f, context).toInt()
                 )
             }
             if (attr == R.styleable.DeltaButton_roundedCorner) {
@@ -170,7 +170,7 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
             if (attr == R.styleable.DeltaButton_roundedCornerRadius) {
                 mRoundedCornerRadius = array.getDimensionPixelSize(
                     attr,
-                    convertDpToPixel(40f, context).toInt()
+                    dpToPixel(40f, context).toInt()
                 )
             }
             if (attr == R.styleable.DeltaButton_transparentBackground) {
@@ -196,10 +196,10 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
      */
     private fun setDefaultValues(context: Context, logo: Int) {
         mIcon = drawableToBitmap(ContextCompat.getDrawable(context, logo)!!)
-        mIconSize = convertDpToPixel(20f, context).toInt()
+        mIconSize = dpToPixel(20f, context).toInt()
         mIconCenterAligned = false
         mRoundedCorner = false
         mTransparentBackground = false
-        mRoundedCornerRadius = convertDpToPixel(8f, context).toInt()
+        mRoundedCornerRadius = dpToPixel(8f, context).toInt()
     }
 }
