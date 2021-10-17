@@ -38,9 +38,7 @@ internal fun openWebView(
 ): Dialog {
     val progressBar = ProgressBar(context, null, R.attr.progressBarStyleHorizontal)
     val webView = object : WebView(context) {
-        override fun onCheckIsTextEditor(): Boolean {
-            return true
-        }
+        override fun onCheckIsTextEditor() = true
     }
     val alertDialog = Dialog(context, R.style.Theme_Material_NoActionBar_Fullscreen)
     val postRequests = object {
@@ -54,18 +52,15 @@ internal fun openWebView(
             payloadMap[url] = payload
         }
 
-        fun getPayload(
-            url: String
-        ): String? = payloadMap[url]
+        fun getPayload(url: String) = payloadMap[url]
     }
     webView.addJavascriptInterface(postRequests, "postRequest")
 
     webView.webViewClient = object : WebViewClient() {
         override fun shouldOverrideUrlLoading(view: WebView, url: String): Boolean {
             val loadURL = shouldLoadUrl(url)
-            if (loadURL) {
+            if (loadURL)
                 view.loadUrl(url)
-            }
             if (!loadURL) {
                 alertDialog.setOnDismissListener { }
                 alertDialog.dismiss()
@@ -178,7 +173,7 @@ internal fun openWebView(
 
     alertDialog.setContentView(layWrap)
     alertDialog.show()
-    insertCookie(cookie, uri.scheme + "://" + uri.encodedAuthority)
+    insertCookie(cookie, "${uri.scheme}://${uri.encodedAuthority}")
 
     webView.loadUrl(uri.toString())
     return alertDialog
@@ -204,6 +199,5 @@ internal fun insertCookie(cookie: String?, url: String) {
     }
 }
 
-internal fun isDarkThemeOn(context: Context): Boolean {
-    return context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
-}
+internal fun isDarkThemeOn(context: Context) =
+    context.resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK == Configuration.UI_MODE_NIGHT_YES
