@@ -5,15 +5,35 @@ import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 
-object RetrofitInstance {
-    private const val BASE_URL = "https://auth.delta.nitt.edu"
+/**
+ * Singleton Object containing the Retrofit api instance
+ */
+internal object RetrofitInstance {
+    /**
+     * Base url of the [Delta OAuth2 Service](https://auth.delta.nitt.edu/)
+     */
+    private const val BaseUrl = "https://auth.delta.nitt.edu"
 
+    /**
+     * An [interceptor][HttpLoggingInterceptor] which logs request and response information
+     */
     private val logger = HttpLoggingInterceptor().setLevel(HttpLoggingInterceptor.Level.BODY)
+
+    /**
+     * [Http client][OkHttpClient] used by retrofit
+     */
     private val okHttpClient = OkHttpClient.Builder().addInterceptor(logger)
 
-    private val retrofit = Retrofit.Builder().baseUrl(BASE_URL)
+    /**
+     * Value Instance of the [Retrofit] class with custom builder params
+     */
+    private val retrofit = Retrofit.Builder().baseUrl(BaseUrl)
         .addConverterFactory(GsonConverterFactory.create())
-        .client(okHttpClient.build()).build()
+        .client(okHttpClient.build())
+        .build()
 
-    val api = retrofit.create(DAuthApi::class.java)
+    /**
+     * Value Instance of the [DAuthApi] interface
+     */
+    val api: DAuthApi = retrofit.create(DAuthApi::class.java)
 }
