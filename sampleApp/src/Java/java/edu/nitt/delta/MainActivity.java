@@ -4,13 +4,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
-
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
-
 import java.util.ArrayList;
 import java.util.List;
-
 import edu.nitt.delta.deltaButton.DeltaButton;
 import edu.nitt.delta.interfaces.ResultListener;
 import edu.nitt.delta.models.AuthorizationRequest;
