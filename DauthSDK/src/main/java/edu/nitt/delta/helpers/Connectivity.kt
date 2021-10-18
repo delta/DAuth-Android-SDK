@@ -5,6 +5,9 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
 
+/**
+ * Utility function to check if Network is available
+ */
 internal fun isNetworkAvailable(context: Context?): Boolean {
     if (context == null) return false
     val connectivityManager =
