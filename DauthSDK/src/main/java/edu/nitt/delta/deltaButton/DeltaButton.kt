@@ -1,5 +1,6 @@
 package edu.nitt.delta.deltaButton
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.graphics.drawable.GradientDrawable
 import android.util.AttributeSet
@@ -13,10 +14,16 @@ import edu.nitt.delta.R
 import edu.nitt.delta.helpers.ViewUtils.convertDpToPixel
 import edu.nitt.delta.helpers.ViewUtils.drawableToBitmap
 
+/**
+ * An open [DeltaButton] class to integrate with the client UI
+ */
 open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
+
+    /**
+     * Default customisable properties of the button
+     * Users can override these default properties in XML while using this button class
+     */
     private var mIcon: Bitmap? = null
-    private var mPaint: Paint? = null
-    private var mSrcRect: Rect? = null
     private var textColors: Int = Color.WHITE
     private var mIconPadding = 0
     private var mIconSize = 0
@@ -25,15 +32,40 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
     private var mRoundedCorner = false
     private var mTransparentBackground = false
     private var mBackgroundColor: Int = Color.BLACK
+
+
+    /**
+     * Canvas utils
+     */
+    private var mPaint: Paint? = null
+    private var mSrcRect: Rect? = null
     private lateinit var drawable: GradientDrawable
 
+    /**
+     * Constructor
+     *
+     * @param context Context
+     */
     constructor(context: Context) : super(context)
 
+    /**
+     * Constructor
+     *
+     * @param context Context
+     * @param attrs   AttributeSet
+     */
     constructor(context: Context, attrs: AttributeSet) : super(context, attrs) {
         init(context, attrs, R.drawable.delta_logo)
         setStyle(R.color.default_background_color, context)
     }
 
+    /**
+     * Constructor
+     *
+     * @param context      Context
+     * @param attrs        AttributeSet
+     * @param defStyleAttr Int
+     */
     constructor(
         context: Context,
         attrs: AttributeSet,
@@ -44,6 +76,12 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         setStyle(R.color.default_background_color, context)
     }
 
+    /**
+     * Sets the style to the button
+     *
+     * @param color   Int
+     * @param context Context
+     */
     private fun setStyle(color: Int, context: Context) {
         setTextColor(textColors)
         setText(R.string.login_button_text)
@@ -67,6 +105,12 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         )
     }
 
+    /**
+     * Overrides the [onDraw] method of AppCompatButton class
+     *
+     * @param canvas Canvas
+     */
+    @SuppressLint("DrawAllocation")
     override fun onDraw(canvas: Canvas) {
         // Recalculate width and amount to shift by, taking into account icon size
         val shift = (mIconSize + mIconPadding) / 2
@@ -82,6 +126,13 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         canvas.restore()
     }
 
+    /**
+     * Initialize the process to get custom attributes from xml and set button params.
+     *
+     * @param context      Context
+     * @param attrs AttributeSet
+     * @param logo         Int
+     */
     private fun init(context: Context, attrs: AttributeSet, logo: Int) {
         val array = context.obtainStyledAttributes(attrs, R.styleable.DeltaButton)
 
@@ -94,7 +145,6 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         }
 
         textColors = array.getColor(R.styleable.DeltaButton_android_textColor, Color.WHITE)
-
 
         // Load the custom properties and assign values
         for (i in 0 until array.indexCount) {
@@ -138,6 +188,12 @@ open class DeltaButton : androidx.appcompat.widget.AppCompatButton {
         }
     }
 
+    /**
+     * Set the default values to button
+     *
+     * @param context Context
+     * @param logo    Int
+     */
     private fun setDefaultValues(context: Context, logo: Int) {
         mIcon = drawableToBitmap(ContextCompat.getDrawable(context, logo)!!)
         mIconSize = convertDpToPixel(20f, context).toInt()
