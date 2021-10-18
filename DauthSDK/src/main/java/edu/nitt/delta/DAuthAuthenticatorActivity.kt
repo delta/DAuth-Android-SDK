@@ -12,19 +12,16 @@ import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
 import java.util.*
 
-//Activity to add a new account to account manager
+
 class DAuthAuthenticatorActivity : Activity() {
-    //Email and Password of DAuth
     private lateinit var email: String
     private lateinit var password: String
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dauth_authenticator)
         val response =
             intent.getParcelableExtra<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
-        //To display the WebView
+
         val uri: Uri = Uri.Builder()
             .scheme(DAuthConstants.SCHEME)
             .authority(DAuthConstants.BASE_AUTHORITY)
@@ -50,12 +47,13 @@ class DAuthAuthenticatorActivity : Activity() {
                 val c1 = Calendar.getInstance()
                 c1.add(Calendar.DAY_OF_YEAR, 30)
                 val resultDate = c1.time
-                //Setting the expire date of the cookie
+                /**
+                 * dueDate [String] expire date of the cookie
+                 */
                 val dueDate: String = resultDate.getDateString("dd/MM/yyyy")
                 bundle.putString(AccountManager.KEY_LAST_AUTHENTICATED_TIME, dueDate)
                 bundle.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
                 bundle.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type)
-                //Adding account to account manager if the account is not found in the account manger
                 if (accountManager.addAccountExplicitly(account, password, bundle)) {
                     response?.onResult(bundle)
                 }
@@ -72,6 +70,10 @@ class DAuthAuthenticatorActivity : Activity() {
             }
             return@openWebView true
         }, { email, password ->
+            /**
+             *  email [String] of the user
+             *  password [String] of the user
+             */
             this.email = email
             this.password = password
         })
