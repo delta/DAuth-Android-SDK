@@ -106,20 +106,22 @@ internal fun openWebView(
             if (onLogin != null) {
                 view?.evaluateJavascript(
                     """
-                    XMLHttpRequest.prototype.origOpen = XMLHttpRequest.prototype.open;
+                    if(!XMLHttpRequest.prototype.origOpen)
+                        XMLHttpRequest.prototype.origOpen = XMLHttpRequest.prototype.open;
                     XMLHttpRequest.prototype.open = function(method, url, async, user, password) {
                         // these will be the key to retrieve the payload
                         this.recordedMethod = method;
                         this.recordedUrl = url;
                         this.origOpen(method, url, async, user, password);
                     };
-                    XMLHttpRequest.prototype.origSend = XMLHttpRequest.prototype.send;
+                    if(!XMLHttpRequest.prototype.origSend)
+                        XMLHttpRequest.prototype.origSend = XMLHttpRequest.prototype.send;
                     XMLHttpRequest.prototype.send = function(body) {
                         // interceptor is a Kotlin interface added in WebView
                         if(body && this.recordedMethod === 'POST') postRequest.recordPayload(this.recordedUrl, body);
                         this.origSend(body);
                     };
-                """.trimIndent(), null
+                    """.trimIndent(), null
                 )
             }
             super.doUpdateVisitedHistory(view, url, isReload)
