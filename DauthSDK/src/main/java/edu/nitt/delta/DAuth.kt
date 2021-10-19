@@ -131,7 +131,7 @@ object DAuth {
                     activity,
                     uri,
                     cookie,
-                    onFailure = {onFailure(AuthorizationErrorType.ServerTimeOutError)}
+                    onFailure = {onFailure(AuthorizationErrorType.ServerDownError)}
                 ){ url ->
                         val uri: Uri = Uri.parse(url)
                         if (url.startsWith(clientCreds.redirectUri)) {

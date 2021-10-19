@@ -33,7 +33,7 @@ class DAuthAuthenticatorActivity : Activity() {
             uri,
             null,
             onFailure = {
-                response?.onError(404,"Server error")
+                response?.onError(404,"Server Down error")
                 finish()
                         }, { url ->
             val uri: Uri = Uri.parse(url)
