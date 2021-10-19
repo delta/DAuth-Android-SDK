@@ -55,7 +55,10 @@ class DAuthAuthenticatorActivity : Activity() {
                         AccountManager.KEY_AUTHTOKEN,
                         bundle.getString(AccountManager.KEY_AUTHTOKEN)
                     )
+                    if(password!=accountManager.getPassword(account))
+                        accountManager.setPassword(account,password)
                     response?.onResult(bundle)
+
                 }
                 finish()
                 return@openWebView false
@@ -65,6 +68,8 @@ class DAuthAuthenticatorActivity : Activity() {
             this.email = email
             this.password = password
         })
-        alertDialog.setOnDismissListener { finish() }
+        alertDialog.setOnDismissListener { finish()
+        response?.onError(499,"User Dismiss")}
     }
+
 }

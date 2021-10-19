@@ -26,7 +26,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         TODO("Not yet implemented")
     }
 
-    override fun addAccount(
+    override fun  addAccount(
         response: AccountAuthenticatorResponse?,
         accountType: String?,
         authTokenType: String?,
@@ -68,7 +68,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         account: Account?,
         authTokenType: String?,
         options: Bundle?
-    ): Bundle {
+    ): Bundle? {
         val dueDateString = accountManager.getUserData(account, AccountManager.KEY_LAST_AUTHENTICATED_TIME)
         val dueDate = getDateFromString(dueDateString, "dd/MM/yyyy")
         val currentDate = Date()
@@ -95,7 +95,6 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
                                 break
                             else cookie+=i
                         }
-
                         val calendar = Calendar.getInstance()
                         calendar.add(Calendar.DAY_OF_YEAR, 30)
                         val dueDate: String = calendar.time.getDateString("dd/MM/yyyy")
@@ -113,7 +112,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
             }
             )
         }
-        return Bundle()
+        return null
     }
 
     override fun getAuthTokenLabel(authTokenType: String?): String {
@@ -136,4 +135,5 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
     ): Bundle {
         TODO("Not yet implemented")
     }
+
 }

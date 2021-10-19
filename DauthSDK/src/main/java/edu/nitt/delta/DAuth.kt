@@ -249,15 +249,26 @@ object DAuth {
                             val account = Account(Result!!.result.getString(AccountManager.KEY_ACCOUNT_NAME)!!, DAuthConstants.ACCOUNT_TYPE)
                             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                                 { Result ->
-                                    try {
-                                        onSuccess(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
-                                    } catch (e: Exception) {
-                                        onFailure()
-                                    }
+                                        try {
+                                            if(Result.result!=null) {
+                                                val authToken =
+                                                    Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!
+                                                accountManager.invalidateAuthToken(
+                                                    DAuthConstants.ACCOUNT_TYPE,
+                                                    authToken
+                                                )
+                                                onSuccess(authToken)
+                                            }
+                                        } catch (e: Exception) {
+                                            onFailure()
+                                        }
                                 }, null
                             )
                         }catch (e: Exception){
-                            onFailure()
+                            if(e.message.equals("User Dismiss"))
+                                onUserDismiss()
+                            else
+                                onFailure()
                         }
                     },
                     null
@@ -292,11 +303,23 @@ object DAuth {
             val account = Account(accountNames[index], DAuthConstants.ACCOUNT_TYPE)
             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                 { Result ->
-                    try {
-                        onSelect(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
-                    } catch (e: Exception) {
-                        onFailure()
-                    }
+                        try {
+                            if(Result.result!=null) {
+                                val authToken =
+                                    Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!
+                                accountManager.invalidateAuthToken(
+                                    DAuthConstants.ACCOUNT_TYPE,
+                                    authToken
+                                )
+                                onSelect(authToken)
+                            }
+
+                        } catch (e: Exception) {
+                            if(e.message.equals("Invalid Credentials"))
+                                onCreateNewAccount()
+                            else
+                            onFailure()
+                        }
                 }, null
             )
         }
