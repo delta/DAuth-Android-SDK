@@ -121,7 +121,6 @@ object DAuth {
                     .appendPath("authorize")
                     .appendQueryParameter("client_id", clientCreds.clientId)
                     .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
-
                     .appendQueryParameter("response_type", authorizationRequest.response_type.toString())
                     .appendQueryParameter("grant_type", authorizationRequest.grant_type.toString())
                     .appendQueryParameter("state", authorizationRequest.state)
@@ -131,7 +130,9 @@ object DAuth {
                 val alertDialog = openWebView(
                     activity,
                     uri,
-                    cookie){ url ->
+                    cookie,
+                    onFailure = {onFailure(AuthorizationErrorType.InternalError)}
+                ){ url ->
                         val uri: Uri = Uri.parse(url)
                         if (url.startsWith(clientCreds.redirectUri)) {
                             if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
