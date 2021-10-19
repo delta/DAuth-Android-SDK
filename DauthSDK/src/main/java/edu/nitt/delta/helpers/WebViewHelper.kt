@@ -136,6 +136,8 @@ internal fun openWebView(
             error: WebResourceError?
         ) {
             super.onReceivedError(view, request, error)
+            alertDialog.setOnDismissListener {  }
+            alertDialog.cancel()
             onFailure()
         }
     }
