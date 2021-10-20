@@ -28,7 +28,14 @@ class DAuthAuthenticatorActivity : Activity() {
             .scheme(DAuthConstants.SCHEME)
             .authority(DAuthConstants.BASE_AUTHORITY)
             .build()
-        val alertDialog = openWebView(this, uri, null, { url ->
+        val alertDialog = openWebView(
+            this,
+            uri,
+            null,
+            onFailure = {
+                response?.onError(404,"Server Down error")
+                finish()
+                        }, { url ->
             val uri: Uri = Uri.parse(url)
             if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(DAuthConstants.BASE_URL)) {
                 return@openWebView false

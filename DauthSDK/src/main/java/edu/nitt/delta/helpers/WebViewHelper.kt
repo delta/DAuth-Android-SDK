@@ -9,6 +9,7 @@ import android.view.View
 import android.webkit.CookieManager
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
+import android.webkit.WebResourceError
 import android.webkit.WebResourceRequest
 import android.webkit.WebResourceResponse
 import android.webkit.WebSettings
@@ -23,13 +24,15 @@ internal fun openWebView(
     context: Context,
     uri: Uri,
     cookie: String? = null,
+    onFailure: () -> Unit,
     shouldLoadUrl: (String) -> Boolean,
-): Dialog = openWebView(context, uri, cookie, shouldLoadUrl, null)
+): Dialog = openWebView(context, uri, cookie, onFailure, shouldLoadUrl, null)
 
 internal fun openWebView(
     context: Context,
     uri: Uri,
     cookie: String? = null,
+    onFailure: () -> Unit,
     shouldLoadUrl: (String) -> Boolean,
     onLogin: ((String, String) -> Unit)? = null,
 ): Dialog {
@@ -39,7 +42,7 @@ internal fun openWebView(
             return true
         }
     }
-    val alertDialog = Dialog(context, android.R.style.Theme_Material_NoActionBar_Fullscreen)
+    val alertDialog = Dialog(context, R.style.Theme_Material_NoActionBar_Fullscreen)
     val postRequests = object {
         private val payloadMap: MutableMap<String, String> = mutableMapOf()
 
@@ -126,6 +129,17 @@ internal fun openWebView(
             }
             super.doUpdateVisitedHistory(view, url, isReload)
         }
+
+        override fun onReceivedError(
+            view: WebView?,
+            request: WebResourceRequest?,
+            error: WebResourceError?
+        ) {
+            super.onReceivedError(view, request, error)
+            alertDialog.setOnDismissListener {  }
+            alertDialog.cancel()
+            onFailure()
+        }
     }
 
     val webSettings: WebSettings = webView.settings
@@ -137,7 +151,7 @@ internal fun openWebView(
     webView.webChromeClient = object : WebChromeClient() {
         override fun onProgressChanged(view: WebView?, newProgress: Int) {
             progressBar.visibility = View.VISIBLE
-            progressBar.setProgress(newProgress)
+            progressBar.progress = newProgress
 
             if (newProgress == 100) {
                 progressBar.visibility = View.GONE

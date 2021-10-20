@@ -4,5 +4,6 @@ enum class AuthorizationErrorType {
     NetworkError,
     UserDismissed,
     InternalError,
-    AuthorizationDenied
+    AuthorizationDenied,
+    ServerDownError
 }
