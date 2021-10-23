@@ -12,8 +12,10 @@ import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
 import java.util.*
 
-
-class DAuthAuthenticatorActivity : Activity() {
+/**
+ * Activity to add a new account to account manager
+ */
+internal class DAuthAuthenticatorActivity : Activity() {
     /**
      *  email [String] of the user
      *  password [String] of the user

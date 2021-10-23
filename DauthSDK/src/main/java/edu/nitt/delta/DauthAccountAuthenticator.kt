@@ -16,7 +16,7 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.util.*
 
-class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator(context) {
+internal class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator(context) {
     private val mContext = context
     private val accountManager = AccountManager.get(mContext)
     override fun editProperties(
