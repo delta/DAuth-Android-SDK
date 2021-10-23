@@ -8,6 +8,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import edu.nitt.delta.api.RetrofitInstance
+import edu.nitt.delta.helpers.ErrorCodes
 import edu.nitt.delta.helpers.getDateFromString
 import edu.nitt.delta.helpers.getDateString
 import okhttp3.ResponseBody
@@ -77,7 +78,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
             return Bundle()
         }else{
             if (account == null){
-                response?.onError(404, "Account Not Found")
+                response?.onError(404, ErrorCodes.NO_ACCOUNT)
                 return Bundle()
             }
             RetrofitInstance.api.getCookie(
@@ -102,12 +103,12 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
                         accountManager.setUserData(account, AccountManager.KEY_AUTHTOKEN, cookie)
                         returnAuthToken(account, response)
                     } else {
-                        response?.onError(510, "Invalid Credentials")
+                        response?.onError(510, ErrorCodes.INVALID_CREDENTIALS)
                     }
                 }
 
                 override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                    response?.onError(510, "Invalid Credentials")
+                    response?.onError(510, ErrorCodes.INVALID_CREDENTIALS)
                 }
             }
             )

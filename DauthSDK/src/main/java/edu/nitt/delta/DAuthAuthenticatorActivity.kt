@@ -7,6 +7,7 @@ import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import edu.nitt.delta.helpers.DAuthConstants
+import edu.nitt.delta.helpers.ErrorCodes
 import edu.nitt.delta.helpers.getDateString
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
@@ -69,7 +70,7 @@ class DAuthAuthenticatorActivity : Activity() {
             this.password = password
         })
         alertDialog.setOnDismissListener { finish()
-        response?.onError(499,"User Dismiss")}
+        response?.onError(499,ErrorCodes.USER_DISMISS)}
     }
 
 }
