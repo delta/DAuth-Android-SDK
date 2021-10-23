@@ -51,7 +51,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         TODO("Not yet implemented")
     }
 
-    private fun returnAuthToken(account: Account?, response: AccountAuthenticatorResponse?){
+    private fun returnAuthToken(account: Account?, response: AccountAuthenticatorResponse?) {
         val bundle = Bundle()
         val authToken = accountManager.getUserData(
             account,
@@ -69,14 +69,15 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         authTokenType: String?,
         options: Bundle?
     ): Bundle {
-        val dueDateString = accountManager.getUserData(account, AccountManager.KEY_LAST_AUTHENTICATED_TIME)
+        val dueDateString =
+            accountManager.getUserData(account, AccountManager.KEY_LAST_AUTHENTICATED_TIME)
         val dueDate = getDateFromString(dueDateString, "dd/MM/yyyy")
         val currentDate = Date()
         if (currentDate < dueDate) {
             returnAuthToken(account, response)
             return Bundle()
-        }else{
-            if (account == null){
+        } else {
+            if (account == null) {
                 response?.onError(404, "Account Not Found")
                 return Bundle()
             }
@@ -89,17 +90,21 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
                     retrofitResponse: Response<ResponseBody>
                 ) {
                     if (retrofitResponse.isSuccessful) {
-                        var cookie=""
-                        for(i in retrofitResponse.headers()["Set-Cookie"].toString()){
-                            if(i==';')
+                        var cookie = ""
+                        for (i in retrofitResponse.headers()["Set-Cookie"].toString()) {
+                            if (i == ';')
                                 break
-                            else cookie+=i
+                            else cookie += i
                         }
 
                         val calendar = Calendar.getInstance()
                         calendar.add(Calendar.DAY_OF_YEAR, 30)
                         val dueDate: String = calendar.time.getDateString("dd/MM/yyyy")
-                        accountManager.setUserData(account, AccountManager.KEY_LAST_AUTHENTICATED_TIME, dueDate)
+                        accountManager.setUserData(
+                            account,
+                            AccountManager.KEY_LAST_AUTHENTICATED_TIME,
+                            dueDate
+                        )
                         accountManager.setUserData(account, AccountManager.KEY_AUTHTOKEN, cookie)
                         returnAuthToken(account, response)
                     } else {

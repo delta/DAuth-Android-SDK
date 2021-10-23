@@ -12,18 +12,22 @@ import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.retrieveCookie
 import java.util.*
 
-
-class DAuthAuthenticatorActivity : Activity() {
-
+/**
+ * Activity to add a new account to account manager
+ */
+internal class DAuthAuthenticatorActivity : Activity() {
+    /**
+     *  email [String] of the user
+     *  password [String] of the user
+     */
     private lateinit var email: String
     private lateinit var password: String
-
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_dauth_authenticator)
         val response =
             intent.getParcelableExtra<AccountAuthenticatorResponse>(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE)
+
         val uri: Uri = Uri.Builder()
             .scheme(DAuthConstants.SCHEME)
             .authority(DAuthConstants.BASE_AUTHORITY)
