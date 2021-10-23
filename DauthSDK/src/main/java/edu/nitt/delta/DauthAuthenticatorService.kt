@@ -8,7 +8,7 @@ import android.os.IBinder
  * Service to initialize the authenticator
  */
 
-class DauthAuthenticatorService : Service() {
+internal class DauthAuthenticatorService : Service() {
 
     override fun onBind(intent: Intent?): IBinder? {
         val authenticator = DauthAccountAuthenticator(this)
