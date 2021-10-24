@@ -3,12 +3,16 @@ package edu.nitt.delta.helpers
 import java.text.SimpleDateFormat
 import java.util.*
 
-internal fun Date.getDateString(format: String) : String{
-    val dateFormat = SimpleDateFormat(format)
-    return dateFormat.format(this)
-}
+/**
+ * An extension function to format a [Date] into a date/time string
+ * @param pattern the pattern describing the date and time format
+ * @return The formatted time string
+ */
+internal fun Date.toFormatString(pattern: String) = SimpleDateFormat(pattern).format(this)
 
-internal fun getDateFromString(dateString: String, format: String) : Date{
-    val dateFormat = SimpleDateFormat(format)
-    return dateFormat.parse(dateString)
-}
+/**
+ * An extension function to parse a [Date] from a given date/time string
+ * @param pattern the pattern describing the date and time format
+ * @return The Date parsed from the string
+ */
+internal fun String.toDate(pattern: String): Date = SimpleDateFormat(pattern).parse(this)
