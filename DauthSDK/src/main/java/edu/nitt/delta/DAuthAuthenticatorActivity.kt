@@ -7,6 +7,8 @@ import android.app.Activity
 import android.net.Uri
 import android.os.Bundle
 import edu.nitt.delta.constants.AccountManagerConstants
+import edu.nitt.delta.constants.ErrorCodeConstants
+import edu.nitt.delta.constants.ErrorMessageConstants
 import edu.nitt.delta.constants.WebViewConstants
 import edu.nitt.delta.helpers.toFormatString
 import edu.nitt.delta.helpers.openWebView
@@ -39,7 +41,7 @@ internal class DAuthAuthenticatorActivity : Activity() {
             uri,
             null,
             onFailure = {
-                response?.onError(404,"Server Down error")
+                response?.onError(ErrorCodeConstants.InternalError,ErrorMessageConstants.ServerDown)
                 finish()
                         }, { url ->
             val uri: Uri = Uri.parse(url)
@@ -68,6 +70,8 @@ internal class DAuthAuthenticatorActivity : Activity() {
                         AccountManager.KEY_AUTHTOKEN,
                         bundle.getString(AccountManager.KEY_AUTHTOKEN)
                     )
+                    if(password!=accountManager.getPassword(account))
+                        accountManager.setPassword(account,password)
                     response?.onResult(bundle)
                 }
                 finish()
@@ -78,6 +82,7 @@ internal class DAuthAuthenticatorActivity : Activity() {
             this.email = email
             this.password = password
         })
-        alertDialog.setOnDismissListener { finish() }
+        alertDialog.setOnDismissListener { finish()
+            response?.onError(ErrorCodeConstants.UserDismiss,ErrorMessageConstants.UserDisMiss)}
     }
 }

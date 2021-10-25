@@ -8,6 +8,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import edu.nitt.delta.api.RetrofitInstance
+import edu.nitt.delta.constants.ErrorCodeConstants
+import edu.nitt.delta.constants.ErrorMessageConstants
 import edu.nitt.delta.helpers.toDate
 import edu.nitt.delta.helpers.toFormatString
 import okhttp3.ResponseBody
@@ -68,7 +70,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
         account: Account?,
         authTokenType: String?,
         options: Bundle?
-    ): Bundle {
+    ): Bundle? {
         val dueDateString = accountManager.getUserData(account, AccountManager.KEY_LAST_AUTHENTICATED_TIME)
         val dueDate = dueDateString.toDate("dd/MM/yyyy")
         val currentDate = Date()
@@ -77,7 +79,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
             return Bundle()
         } else {
             if (account == null) {
-                response?.onError(404, "Account Not Found")
+                response?.onError(ErrorCodeConstants.InternalError, ErrorMessageConstants.NoAccount)
                 return Bundle()
             }
             RetrofitInstance.api.getCookie(
@@ -104,17 +106,17 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
                         accountManager.setUserData(account, AccountManager.KEY_AUTHTOKEN, cookie)
                         returnAuthToken(account, response)
                     } else {
-                        response?.onError(510, "Invalid Credentials")
+                        response?.onError(ErrorCodeConstants.InvalidCredentials, ErrorMessageConstants.InvalidCredentials)
                     }
                 }
 
                 override fun onFailure(call: Call<ResponseBody>, t: Throwable) {
-                    response?.onError(510, "Invalid Credentials")
+                    response?.onError(ErrorCodeConstants.InvalidCredentials, ErrorMessageConstants.InvalidCredentials)
                 }
             }
             )
         }
-        return Bundle()
+        return null
     }
 
     override fun getAuthTokenLabel(authTokenType: String?): String {
