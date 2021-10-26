@@ -7,6 +7,7 @@ import android.app.AlertDialog
 import android.net.Uri
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.constants.AccountManagerConstants
+import edu.nitt.delta.constants.ErrorMessageConstants
 import edu.nitt.delta.constants.WebViewConstants.BaseAuthority
 import edu.nitt.delta.constants.WebViewConstants.BaseUrl
 import edu.nitt.delta.constants.WebViewConstants.Scheme
@@ -251,9 +252,20 @@ object DAuth {
                             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                                 { Result ->
                                     try {
-                                        onSuccess(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
+                                        if(Result.result!=null) {
+                                            val authToken =
+                                                Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!
+                                            accountManager.invalidateAuthToken(
+                                                AccountManagerConstants.AccountType,
+                                                authToken
+                                            )
+                                            onSuccess(authToken)
+                                        }
                                     } catch (e: Exception) {
-                                        onFailure()
+                                        if(e.message.equals(ErrorMessageConstants.UserDisMiss))
+                                            onUserDismiss()
+                                        else
+                                            onFailure()
                                     }
                                 }, null
                             )
@@ -294,9 +306,21 @@ object DAuth {
             accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
                 { Result ->
                     try {
-                        onSelect(Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!)
+                        if(Result.result!=null) {
+                            val authToken =
+                                Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!
+                            accountManager.invalidateAuthToken(
+                                AccountManagerConstants.AccountType,
+                                authToken
+                            )
+                            onSelect(authToken)
+                        }
+
                     } catch (e: Exception) {
-                        onFailure()
+                        if(e.message.equals(ErrorMessageConstants.InvalidCredentials))
+                            onCreateNewAccount()
+                        else
+                            onFailure()
                     }
                 }, null
             )
