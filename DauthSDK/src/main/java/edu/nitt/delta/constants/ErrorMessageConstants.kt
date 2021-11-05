@@ -5,4 +5,5 @@ object ErrorMessageConstants {
     const val InvalidCredentials="Invalid Credentials"
     const val ServerDown="Server Down error"
     const val UserDisMiss="User Dismiss"
+    const val OpenIdScopeMissing="OpenId Scope Required for Specific Scopes"
 }

@@ -5,6 +5,7 @@ import android.accounts.AccountManager
 import android.app.Activity
 import android.app.AlertDialog
 import android.net.Uri
+import android.util.Base64
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.constants.AccountManagerConstants
 import edu.nitt.delta.constants.ErrorMessageConstants
@@ -23,9 +24,11 @@ import edu.nitt.delta.models.Scope
 import edu.nitt.delta.models.Token
 import edu.nitt.delta.models.TokenRequest
 import edu.nitt.delta.models.User
+import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.io.UnsupportedEncodingException
 import java.util.*
 
 object DAuth {
@@ -72,12 +75,34 @@ object DAuth {
                         ),
                         onFailure = { e -> onFailure(e) },
                         onSuccess = { token ->
-                            fetchUserDetails(
-                                token.access_token,
-                                onFailure = { e -> onFailure(e) }
-                            ) { user ->
-                                currentUser = user
-                                onSuccess(user)
+                            if(authorizationRequest.scopes.contains(Scope.User)) {
+                                fetchUserDetails(
+                                    token.access_token,
+                                    onFailure = { e -> onFailure(e) }
+                                ) { user ->
+                                    currentUser = user
+                                    onSuccess(user)
+                                }
+                            }
+                            else{
+                                if(token.id_token!=null){
+                                    try {
+                                        val idToken=token.id_token
+                                        val split: List<String> = idToken.split(".")
+                                        val json =JSONObject(String(Base64.decode(split[1],Base64.URL_SAFE)))
+                                        val email=if (json.has("email")) json.get("email").toString() else null
+                                        val name=if(json.has("name")) json.get("name").toString() else null
+                                        val user=User(null,email,name,null)
+                                        currentUser=user
+                                        onSuccess(user)
+                                    } catch (e: UnsupportedEncodingException) {
+                                        onFailure(e)
+                                    }
+
+                                }
+                                else{
+                                     onFailure(Exception(ErrorMessageConstants.OpenIdScopeMissing))
+                                }
                             }
                         }
                     )
@@ -187,7 +212,6 @@ object DAuth {
                     onFailure(Exception(response.code().toString()))
                     return
                 }
-
                 response.body()?.let { onSuccess(it) }
             }
 
