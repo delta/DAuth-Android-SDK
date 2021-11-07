@@ -18,4 +18,9 @@ internal object ApiRoutes {
      * Login route
      */
     const val Login = "/api/auth/login"
+
+    /**
+     * Key route
+     */
+    const val Key="/api/oauth/oidc/key"
 }

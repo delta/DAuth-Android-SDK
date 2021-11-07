@@ -16,19 +16,11 @@ import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
 import edu.nitt.delta.interfaces.ResultListener
-import edu.nitt.delta.models.AuthorizationErrorType
-import edu.nitt.delta.models.AuthorizationRequest
-import edu.nitt.delta.models.AuthorizationResponse
-import edu.nitt.delta.models.ClientCredentials
-import edu.nitt.delta.models.Scope
-import edu.nitt.delta.models.Token
-import edu.nitt.delta.models.TokenRequest
-import edu.nitt.delta.models.User
+import edu.nitt.delta.models.*
 import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
-import java.io.UnsupportedEncodingException
 import java.util.*
 
 object DAuth {
@@ -43,22 +35,22 @@ object DAuth {
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
-        signInListener: ResultListener<User>
+        signInListener: ResultListener<Result>
     ) {
         signIn(
             activity,
             authorizationRequest,
-            onSuccess = {user -> signInListener.onSuccess(user)},
-            onFailure = {exception -> signInListener.onFailure(exception) }
+            onSuccess = { result -> signInListener.onSuccess(result) },
+            onFailure = { exception -> signInListener.onFailure(exception) }
         )
     }
 
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
-        onSuccess: (User) -> Unit,
+        onSuccess: (Result) -> Unit,
         onFailure: (Exception) -> Unit
-    ){
+    ) {
         requestAuthorization(
             activity,
             authorizationRequest,
@@ -75,38 +67,31 @@ object DAuth {
                         ),
                         onFailure = { e -> onFailure(e) },
                         onSuccess = { token ->
-                            if(authorizationRequest.scopes.contains(Scope.User)) {
+                            if (authorizationRequest.scopes.contains(Scope.User)) {
                                 fetchUserDetails(
                                     token.access_token,
                                     onFailure = { e -> onFailure(e) }
                                 ) { user ->
                                     currentUser = user
-                                    onSuccess(user)
+                                    onSuccess(Result(user,authorizationRequest.scopes))
                                 }
-                            }
-                            else{
-                                if(token.id_token!=null){
-                                    try {
-                                        val idToken=token.id_token
-                                        val split: List<String> = idToken.split(".")
-                                        val json =JSONObject(String(Base64.decode(split[1],Base64.URL_SAFE)))
-                                        val email=if (json.has("email")) json.get("email").toString() else null
-                                        val name=if(json.has("name")) json.get("name").toString() else null
-                                        val user=User(null,email,name,null)
-                                        currentUser=user
-                                        onSuccess(user)
-                                    } catch (e: UnsupportedEncodingException) {
-                                        onFailure(e)
+                            } else {
+                                if (token.id_token != null) {
+                                    fetchFromJwt(
+                                        authorizationRequest,
+                                        token.id_token,
+                                        onFailure = { e -> onFailure(e) }
+                                    ) { user ->
+                                        currentUser = user
+                                        onSuccess(Result(user,authorizationRequest.scopes))
                                     }
-
-                                }
-                                else{
-                                     onFailure(Exception(ErrorMessageConstants.OpenIdScopeMissing))
+                                } else {
+                                    onFailure(Exception(ErrorMessageConstants.OpenIdScopeMissing))
                                 }
                             }
                         }
                     )
-                }else{
+                } else {
                     onFailure(Exception(AuthorizationErrorType.AuthorizationDenied.toString()))
                 }
             }
@@ -121,8 +106,12 @@ object DAuth {
         requestAuthorization(
             activity,
             authorizationRequest,
-            onFailure = {authorizationErrorType -> authorizationListener.onFailure(Exception("$authorizationErrorType")) },
-            onSuccess = {authorizationResponse -> authorizationListener.onSuccess(authorizationResponse) }
+            onFailure = { authorizationErrorType -> authorizationListener.onFailure(Exception("$authorizationErrorType")) },
+            onSuccess = { authorizationResponse ->
+                authorizationListener.onSuccess(
+                    authorizationResponse
+                )
+            }
         )
     }
 
@@ -133,7 +122,7 @@ object DAuth {
         onFailure: (AuthorizationErrorType) -> Unit,
         onSuccess: (AuthorizationResponse) -> Unit
     ) {
-        if (!isNetworkAvailable(activity)){
+        if (!isNetworkAvailable(activity)) {
             onFailure(AuthorizationErrorType.NetworkError)
         }
         selectAccount(
@@ -147,7 +136,10 @@ object DAuth {
                     .appendPath("authorize")
                     .appendQueryParameter("client_id", clientCreds.clientId)
                     .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
-                    .appendQueryParameter("response_type", authorizationRequest.response_type.toString())
+                    .appendQueryParameter(
+                        "response_type",
+                        authorizationRequest.response_type.toString()
+                    )
                     .appendQueryParameter("grant_type", authorizationRequest.grant_type.toString())
                     .appendQueryParameter("state", authorizationRequest.state)
                     .appendQueryParameter("scope", Scope.combineScopes(authorizationRequest.scopes))
@@ -157,31 +149,31 @@ object DAuth {
                     activity,
                     uri,
                     cookie,
-                    onFailure = {onFailure(AuthorizationErrorType.ServerDownError)}
-                ){ url ->
-                        val uri: Uri = Uri.parse(url)
-                        if (url.startsWith(clientCreds.redirectUri)) {
-                            if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
-                                onFailure(AuthorizationErrorType.AuthorizationDenied)
-                            } else {
-                                val authorizationResponse = AuthorizationResponse(
-                                    uri.getQueryParameter("code") ?: "",
-                                    uri.getQueryParameter("state") ?: ""
-                                )
-                                onSuccess(authorizationResponse)
-                            }
-                            return@openWebView false
+                    onFailure = { onFailure(AuthorizationErrorType.ServerDownError) }
+                ) { url ->
+                    val uri: Uri = Uri.parse(url)
+                    if (url.startsWith(clientCreds.redirectUri)) {
+                        if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
+                            onFailure(AuthorizationErrorType.AuthorizationDenied)
+                        } else {
+                            val authorizationResponse = AuthorizationResponse(
+                                uri.getQueryParameter("code") ?: "",
+                                uri.getQueryParameter("state") ?: ""
+                            )
+                            onSuccess(authorizationResponse)
                         }
-                        if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BaseUrl)) {
-                            onFailure(AuthorizationErrorType.InternalError)
-                            return@openWebView false
-                        }
-                        if (uri.path == "/dashboard") {
-                            onFailure(AuthorizationErrorType.InternalError)
-                            return@openWebView false
-                        }
-                        return@openWebView true
+                        return@openWebView false
                     }
+                    if (!(uri.scheme + "://" + uri.encodedAuthority).contentEquals(BaseUrl)) {
+                        onFailure(AuthorizationErrorType.InternalError)
+                        return@openWebView false
+                    }
+                    if (uri.path == "/dashboard") {
+                        onFailure(AuthorizationErrorType.InternalError)
+                        return@openWebView false
+                    }
+                    return@openWebView true
+                }
                 alertDialog.setOnDismissListener {
                     onFailure(AuthorizationErrorType.UserDismissed)
                 }
@@ -192,11 +184,11 @@ object DAuth {
     fun fetchToken(
         request: TokenRequest,
         fetchTokenListener: ResultListener<Token>
-    ){
+    ) {
         fetchToken(
             request,
-            onFailure = {exception -> fetchTokenListener.onFailure(exception)},
-            onSuccess = {token -> fetchTokenListener.onSuccess(token) }
+            onFailure = { exception -> fetchTokenListener.onFailure(exception) },
+            onSuccess = { token -> fetchTokenListener.onSuccess(token) }
         )
     }
 
@@ -224,11 +216,11 @@ object DAuth {
     fun fetchUserDetails(
         accessToken: String,
         fetchUserDetailsListener: ResultListener<User>
-    ){
+    ) {
         fetchUserDetails(
             accessToken,
-            onFailure = {exception -> fetchUserDetailsListener.onFailure(exception)},
-            onSuccess = {user -> fetchUserDetailsListener.onSuccess(user)}
+            onFailure = { exception -> fetchUserDetailsListener.onFailure(exception) },
+            onSuccess = { user -> fetchUserDetailsListener.onSuccess(user) }
         )
     }
 
@@ -272,11 +264,15 @@ object DAuth {
                     activity,
                     { Result ->
                         try {
-                            val account = Account(Result!!.result.getString(AccountManager.KEY_ACCOUNT_NAME)!!, AccountManagerConstants.AccountType)
-                            accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
+                            val account = Account(
+                                Result!!.result.getString(AccountManager.KEY_ACCOUNT_NAME)!!,
+                                AccountManagerConstants.AccountType
+                            )
+                            accountManager.getAuthToken(
+                                account, AccountManager.KEY_AUTHTOKEN, null, activity,
                                 { Result ->
                                     try {
-                                        if(Result.result!=null) {
+                                        if (Result.result != null) {
                                             val authToken =
                                                 Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!
                                             accountManager.invalidateAuthToken(
@@ -286,14 +282,14 @@ object DAuth {
                                             onSuccess(authToken)
                                         }
                                     } catch (e: Exception) {
-                                        if(e.message.equals(ErrorMessageConstants.UserDisMiss))
+                                        if (e.message.equals(ErrorMessageConstants.UserDisMiss))
                                             onUserDismiss()
                                         else
                                             onFailure()
                                     }
                                 }, null
                             )
-                        }catch (e: Exception){
+                        } catch (e: Exception) {
                             onFailure()
                         }
                     },
@@ -327,10 +323,11 @@ object DAuth {
         }
         alertBuilder.setItems(accountNames) { _, index ->
             val account = Account(accountNames[index], AccountManagerConstants.AccountType)
-            accountManager.getAuthToken(account, AccountManager.KEY_AUTHTOKEN, null, activity,
+            accountManager.getAuthToken(
+                account, AccountManager.KEY_AUTHTOKEN, null, activity,
                 { Result ->
                     try {
-                        if(Result.result!=null) {
+                        if (Result.result != null) {
                             val authToken =
                                 Result!!.result.getString(AccountManager.KEY_AUTHTOKEN)!!
                             accountManager.invalidateAuthToken(
@@ -341,7 +338,7 @@ object DAuth {
                         }
 
                     } catch (e: Exception) {
-                        if(e.message.equals(ErrorMessageConstants.InvalidCredentials))
+                        if (e.message.equals(ErrorMessageConstants.InvalidCredentials))
                             onCreateNewAccount()
                         else
                             onFailure()
@@ -352,7 +349,68 @@ object DAuth {
         alertBuilder.setPositiveButton("Create new account") { _, _ ->
             onCreateNewAccount()
         }
-        alertBuilder.setOnCancelListener{onUserDismiss()}
+        alertBuilder.setOnCancelListener { onUserDismiss() }
         alertBuilder.create().show()
+    }
+
+    private fun fetchFromJwt(
+        authorizationRequest: AuthorizationRequest,
+        idToken: String,
+        onFailure: (Exception) -> Unit,
+        onSuccess: (User) -> Unit
+    ) {
+        RetrofitInstance.api.getJwks().enqueue(object : Callback<jwks> {
+            override fun onResponse(call: Call<jwks>, response: Response<jwks>) {
+                if (!response.isSuccessful) {
+                    onFailure(Exception(response.code().toString()))
+                    return
+                }
+                response.body()?.let {
+                    validateIdToken(
+                        authorizationRequest,
+                        it,
+                        idToken,
+                        onSuccess = onSuccess,
+                        onFailure = onFailure
+                    )
+                }
+
+            }
+
+            override fun onFailure(call: Call<jwks>, t: Throwable) {
+                onFailure(Exception(t.message))
+            }
+        })
+
+    }
+
+    private fun validateIdToken(
+        authorizationRequest: AuthorizationRequest,
+        jwks: jwks,
+        idToken: String,
+        onSuccess: (User) -> Unit,
+        onFailure: (Exception) -> Unit
+    ) {
+        try {
+            val split: List<String> = idToken.split(".")
+            val headers = JSONObject(String(Base64.decode(split[0], Base64.URL_SAFE)))
+            val data = JSONObject(String(Base64.decode(split[1], Base64.URL_SAFE)))
+            if (!headers.getString("kid")
+                    .equals(jwks.key[0].kid) || !authorizationRequest.nonce.equals(data.getString("nonce"))
+            ) {
+                onFailure(Exception(ErrorMessageConstants.InvalidIdToken))
+                return
+            }
+            val user = User(
+                null,
+                if (data.has("email")) data.get("email").toString() else null,
+                if (data.has("name")) data.get("name").toString() else null,
+                null
+            )
+            currentUser = user
+            onSuccess(user)
+        } catch (e: Exception) {
+            onFailure(e)
+        }
     }
 }
