@@ -6,6 +6,7 @@ import android.app.Activity
 import android.app.AlertDialog
 import android.net.Uri
 import android.util.Base64
+import com.google.gson.GsonBuilder
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.constants.AccountManagerConstants
 import edu.nitt.delta.constants.ErrorMessageConstants
@@ -17,7 +18,6 @@ import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
 import edu.nitt.delta.interfaces.ResultListener
 import edu.nitt.delta.models.*
-import org.json.JSONObject
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
@@ -73,17 +73,27 @@ object DAuth {
                                     onFailure = { e -> onFailure(e) }
                                 ) { user ->
                                     currentUser = user
-                                    onSuccess(Result(user,authorizationRequest.scopes))
+                                    if(authorizationRequest.scopes.contains(Scope.OpenID)){
+                                        fetchFromJwt(
+                                            authorizationRequest,
+                                            token.id_token,
+                                            onFailure = { e -> onFailure(e) }
+                                        ){_,jwt ->
+                                            onSuccess(Result(user,jwt,token.id_token))
+                                        }
+                                    } else {
+                                        onSuccess(Result(user, null, null))
+                                    }
                                 }
                             } else {
-                                if (token.id_token != null) {
+                                if (authorizationRequest.scopes.contains(Scope.OpenID)) {
                                     fetchFromJwt(
                                         authorizationRequest,
                                         token.id_token,
                                         onFailure = { e -> onFailure(e) }
-                                    ) { user ->
+                                    ) { user,jwt ->
                                         currentUser = user
-                                        onSuccess(Result(user,authorizationRequest.scopes))
+                                        onSuccess(Result(user,jwt,token.id_token))
                                     }
                                 } else {
                                     onFailure(Exception(ErrorMessageConstants.OpenIdScopeMissing))
@@ -357,7 +367,7 @@ object DAuth {
         authorizationRequest: AuthorizationRequest,
         idToken: String,
         onFailure: (Exception) -> Unit,
-        onSuccess: (User) -> Unit
+        onSuccess: (User?,jwt) -> Unit
     ) {
         RetrofitInstance.api.getJwks().enqueue(object : Callback<jwks> {
             override fun onResponse(call: Call<jwks>, response: Response<jwks>) {
@@ -388,27 +398,31 @@ object DAuth {
         authorizationRequest: AuthorizationRequest,
         jwks: jwks,
         idToken: String,
-        onSuccess: (User) -> Unit,
+        onSuccess: (User?,jwt) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
         try {
             val split: List<String> = idToken.split(".")
-            val headers = JSONObject(String(Base64.decode(split[0], Base64.URL_SAFE)))
-            val data = JSONObject(String(Base64.decode(split[1], Base64.URL_SAFE)))
-            if (!headers.getString("kid")
-                    .equals(jwks.key[0].kid) || !authorizationRequest.nonce.equals(data.getString("nonce"))
+            val gson = GsonBuilder().create()
+            val headers = gson.fromJson(String(Base64.decode(split[0], Base64.URL_SAFE)),Header::class.java)
+            val data = gson.fromJson(String(Base64.decode(split[1], Base64.URL_SAFE)),Data::class.java)
+            if (!(headers.kid
+                    .equals(jwks.key[0].kid)) || !(authorizationRequest.nonce.equals(data.nonce))
             ) {
                 onFailure(Exception(ErrorMessageConstants.InvalidIdToken))
                 return
             }
-            val user = User(
-                null,
-                if (data.has("email")) data.get("email").toString() else null,
-                if (data.has("name")) data.get("name").toString() else null,
-                null
-            )
-            currentUser = user
-            onSuccess(user)
+            if(!authorizationRequest.scopes.contains(Scope.Email) && !authorizationRequest.scopes.contains(Scope.Profile)){
+                onSuccess(null,jwt(headers,data))
+            } else {
+                val user = User(
+                    null,
+                    data.email,
+                    data.name,
+                    null
+                )
+                onSuccess(user, jwt(headers, data))
+            }
         } catch (e: Exception) {
             onFailure(e)
         }

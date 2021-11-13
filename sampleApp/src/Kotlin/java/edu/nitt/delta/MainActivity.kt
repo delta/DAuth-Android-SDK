@@ -22,7 +22,7 @@ class MainActivity : AppCompatActivity() {
                     ResponseType.Code,
                     GrantType.AuthorizationCode,
                     "1ww12",
-                    listOf(Scope.OpenID),
+                    listOf(Scope.OpenID,Scope.Profile,Scope.Email,Scope.User),
                     "ncsasd"
                 ),
                 onSuccess = { result: Result ->
