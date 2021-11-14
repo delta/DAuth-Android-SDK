@@ -2,13 +2,10 @@ package edu.nitt.delta.api
 
 import edu.nitt.delta.models.Token
 import edu.nitt.delta.models.User
+import edu.nitt.delta.models.jwks
 import okhttp3.ResponseBody
 import retrofit2.Call
-import retrofit2.http.Field
-import retrofit2.http.FieldMap
-import retrofit2.http.FormUrlEncoded
-import retrofit2.http.Header
-import retrofit2.http.POST
+import retrofit2.http.*
 
 /**
  * A [Retrofit][retrofit2.Retrofit] interface to communicate with the [Delta OAuth2 Service](https://auth.delta.nitt.edu/)
@@ -45,4 +42,11 @@ internal interface DAuthApi {
         @Field("email") email: String,
         @Field("password") password: String
     ): Call<ResponseBody>
+
+    /**
+     * Fetches the [jwks] from the [key api route][ApiRoutes.Key]
+     * @return [Call]<[jwks]>
+     */
+    @GET(ApiRoutes.Key)
+    fun getJwks():Call<jwks>
 }

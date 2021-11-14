@@ -6,6 +6,7 @@ import edu.nitt.delta.deltaButton.DeltaButton
 import edu.nitt.delta.models.AuthorizationRequest
 import edu.nitt.delta.models.GrantType
 import edu.nitt.delta.models.ResponseType
+import edu.nitt.delta.models.Result
 import edu.nitt.delta.models.Scope
 import edu.nitt.delta.models.User
 
@@ -21,11 +22,11 @@ class MainActivity : AppCompatActivity() {
                     ResponseType.Code,
                     GrantType.AuthorizationCode,
                     "1ww12",
-                    listOf(Scope.OpenID, Scope.User, Scope.Email, Scope.Profile),
+                    listOf(Scope.OpenID,Scope.Profile,Scope.Email,Scope.User),
                     "ncsasd"
                 ),
-                onSuccess = { user: User ->
-                        println("Success: $user")
+                onSuccess = { result: Result ->
+                        println("Success: $result")
                 },
                 onFailure = { exception: Exception ->
                     exception.printStackTrace()
