@@ -13,6 +13,7 @@ import edu.nitt.delta.interfaces.ResultListener;
 import edu.nitt.delta.models.AuthorizationRequest;
 import edu.nitt.delta.models.GrantType;
 import edu.nitt.delta.models.ResponseType;
+import edu.nitt.delta.models.Result;
 import edu.nitt.delta.models.Scope;
 import edu.nitt.delta.models.User;
 
@@ -40,10 +41,10 @@ public class MainActivity extends AppCompatActivity {
                                 "1ww12",
                                 scopes,
                                 "ncsasd"),
-                        new ResultListener<User>() {
+                        new ResultListener<Result>() {
                             @Override
-                            public void onSuccess(@NonNull User user) {
-                                Log.d("DAuthSample","Success: " + user.toString());
+                            public void onSuccess(@NonNull Result result) {
+                                Log.d("DAuthSample","Success: " + result.toString());
                             }
 
                             @Override

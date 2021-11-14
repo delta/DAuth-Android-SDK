@@ -78,7 +78,7 @@ object DAuth {
                                             authorizationRequest,
                                             token.id_token,
                                             onFailure = { e -> onFailure(e) }
-                                        ){_,jwt ->
+                                        ){jwt ->
                                             onSuccess(Result(user,jwt,token.id_token))
                                         }
                                     } else {
@@ -91,9 +91,8 @@ object DAuth {
                                         authorizationRequest,
                                         token.id_token,
                                         onFailure = { e -> onFailure(e) }
-                                    ) { user,jwt ->
-                                        currentUser = user
-                                        onSuccess(Result(user,jwt,token.id_token))
+                                    ) { jwt ->
+                                        onSuccess(Result(null,jwt,token.id_token))
                                     }
                                 } else {
                                     onFailure(Exception(ErrorMessageConstants.OpenIdScopeMissing))
@@ -363,11 +362,24 @@ object DAuth {
         alertBuilder.create().show()
     }
 
-    private fun fetchFromJwt(
+    fun fetchFromJwt(
+        authorizationRequest: AuthorizationRequest,
+        idToken: String,
+        fetchJwtListener: ResultListener<jwt>
+    ){
+        fetchFromJwt(
+            authorizationRequest,
+            idToken,
+            onFailure = { exception -> fetchJwtListener.onFailure(exception) },
+            onSuccess = { jwt -> fetchJwtListener.onSuccess(jwt) }
+        )
+    }
+
+    fun fetchFromJwt(
         authorizationRequest: AuthorizationRequest,
         idToken: String,
         onFailure: (Exception) -> Unit,
-        onSuccess: (User?,jwt) -> Unit
+        onSuccess: (jwt) -> Unit
     ) {
         RetrofitInstance.api.getJwks().enqueue(object : Callback<jwks> {
             override fun onResponse(call: Call<jwks>, response: Response<jwks>) {
@@ -376,7 +388,7 @@ object DAuth {
                     return
                 }
                 response.body()?.let {
-                    validateIdToken(
+                    verifyOpenIdToken(
                         authorizationRequest,
                         it,
                         idToken,
@@ -394,11 +406,11 @@ object DAuth {
 
     }
 
-    private fun validateIdToken(
+    private fun verifyOpenIdToken(
         authorizationRequest: AuthorizationRequest,
         jwks: jwks,
         idToken: String,
-        onSuccess: (User?,jwt) -> Unit,
+        onSuccess: (jwt) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
         try {
@@ -412,17 +424,7 @@ object DAuth {
                 onFailure(Exception(ErrorMessageConstants.InvalidIdToken))
                 return
             }
-            if(!authorizationRequest.scopes.contains(Scope.Email) && !authorizationRequest.scopes.contains(Scope.Profile)){
-                onSuccess(null,jwt(headers,data))
-            } else {
-                val user = User(
-                    null,
-                    data.email,
-                    data.name,
-                    null
-                )
-                onSuccess(user, jwt(headers, data))
-            }
+            onSuccess(jwt(headers, data))
         } catch (e: Exception) {
             onFailure(e)
         }
