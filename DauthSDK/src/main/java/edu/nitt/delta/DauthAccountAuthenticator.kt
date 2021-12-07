@@ -22,7 +22,7 @@ import java.util.*
  * Account authenticator class for account manager
  */
 class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator(context) {
-
+    
     private val mContext = context
     private val accountManager = AccountManager.get(mContext)
     
@@ -32,7 +32,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
     ): Bundle {
         TODO("Not yet implemented")
     }
-
+    
     override fun addAccount(
         response: AccountAuthenticatorResponse?,
         accountType: String?,

@@ -26,14 +26,12 @@ import java.util.*
 /**
  * Main DAuth object whose instance is to be created to make use of DAuth sign in functionalities
  */
-
 object DAuth {
 
     /**
      * currentUser [User] that stores the details of current logged user
      * clientCreds [ClientCredentials] storing the credentials obtained after client registration in auth.delta.nitt.edu
      */
-
     private var currentUser: User? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
