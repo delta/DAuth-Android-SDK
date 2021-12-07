@@ -17,6 +17,9 @@ import edu.nitt.delta.models.Result;
 import edu.nitt.delta.models.Scope;
 import edu.nitt.delta.models.User;
 
+/**
+ * Sample activity in java to show the use of DAuth sign in
+ */
 public class MainActivity extends AppCompatActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
