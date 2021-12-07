@@ -5,5 +5,6 @@ data class AuthorizationRequest(
     val grant_type: GrantType,
     val state: String,
     val scopes: List<Scope>,
-    val nonce: String
+    val nonce: String,
+    val isPkceEnabled: Boolean
 )

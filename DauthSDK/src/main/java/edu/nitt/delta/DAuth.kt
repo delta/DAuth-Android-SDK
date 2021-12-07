@@ -13,6 +13,7 @@ import edu.nitt.delta.constants.ErrorMessageConstants
 import edu.nitt.delta.constants.WebViewConstants.BaseAuthority
 import edu.nitt.delta.constants.WebViewConstants.BaseUrl
 import edu.nitt.delta.constants.WebViewConstants.Scheme
+import edu.nitt.delta.helpers.PkceUtil
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
@@ -33,6 +34,7 @@ object DAuth {
      * clientCreds [ClientCredentials] storing the credentials obtained after client registration in auth.delta.nitt.edu
      */
     private var currentUser: User? = null
+    private var codeVerifier:String? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
         BuildConfig.REDIRECT_URI,
@@ -175,7 +177,8 @@ object DAuth {
             onFailure = { onFailure(AuthorizationErrorType.InternalError) },
             onUserDismiss = { onFailure(AuthorizationErrorType.UserDismissed) },
             onSuccess = { cookie ->
-                val uri: Uri = Uri.Builder()
+                val pkceUtil =PkceUtil()
+                val uriBuilder = Uri.Builder()
                     .scheme(Scheme)
                     .authority(BaseAuthority)
                     .appendPath("authorize")
@@ -189,10 +192,20 @@ object DAuth {
                     .appendQueryParameter("state", authorizationRequest.state)
                     .appendQueryParameter("scope", Scope.combineScopes(authorizationRequest.scopes))
                     .appendQueryParameter("nonce", authorizationRequest.nonce)
-                    .build()
+                if(authorizationRequest.isPkceEnabled){
+                    try {
+                        codeVerifier = pkceUtil.generateCodeVerifier()
+                        uriBuilder.appendQueryParameter("code_challenge",pkceUtil.generateCodeChallenge(
+                            codeVerifier!!,pkceUtil.getCodeChallengeMethod()))
+                        uriBuilder.appendQueryParameter("code_challenge_method",pkceUtil.getCodeChallengeMethod())
+                    }catch (e: Exception){
+                        onFailure(AuthorizationErrorType.UnableToGenerateCodeVerifier)
+                    }
+
+                }
                 val alertDialog = openWebView(
                     activity,
-                    uri,
+                    uriBuilder.build(),
                     cookie,
                     onFailure = { onFailure(AuthorizationErrorType.ServerDownError) }
                 ) { url ->
@@ -255,7 +268,10 @@ object DAuth {
         onFailure: (Exception) -> Unit,
         onSuccess: (Token) -> Unit
     ) {
-        RetrofitInstance.api.getToken(request.toMap()).enqueue(object : Callback<Token> {
+        var requestAsMap :Map<String,String> = request.toMap()
+        if(codeVerifier != null)
+            requestAsMap.plus(Pair("code_verifier", codeVerifier))
+        RetrofitInstance.api.getToken(requestAsMap).enqueue(object : Callback<Token> {
             override fun onResponse(call: Call<Token>, response: Response<Token>) {
                 if (!response.isSuccessful) {
                     onFailure(Exception(response.code().toString()))

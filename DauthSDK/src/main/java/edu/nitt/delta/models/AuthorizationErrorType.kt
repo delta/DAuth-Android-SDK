@@ -5,5 +5,6 @@ enum class AuthorizationErrorType {
     UserDismissed,
     InternalError,
     AuthorizationDenied,
-    ServerDownError
+    ServerDownError,
+    UnableToGenerateCodeVerifier
 }
