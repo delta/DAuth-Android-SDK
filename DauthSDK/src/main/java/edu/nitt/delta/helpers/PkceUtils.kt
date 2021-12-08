@@ -6,9 +6,16 @@ import java.security.NoSuchAlgorithmException
 import java.security.SecureRandom
 
 class PkceUtil {
-
+    /**
+     * encodeSettings [encodeSettings] that stores constraints for encoding to string as int variable
+     */
     private val encodeSettings = Base64.NO_WRAP or Base64.NO_PADDING or Base64.URL_SAFE
 
+    /**
+     *generates code verifier
+     *
+     * @return code verifier as string
+     */
     fun generateCodeVerifier(): String {
         val secureRandom = SecureRandom()
         val codeVerifier = ByteArray(32)
@@ -16,6 +23,13 @@ class PkceUtil {
         return Base64.encodeToString(codeVerifier, encodeSettings)
     }
 
+    /**
+     * utility function to generate code challenge
+     *
+     * @param codeVerifier string for which code challenge has to be generated
+     * @param algorithm String that describes the algorithm used to generate code challenge
+     * @return code challenge as a string
+     */
     fun generateCodeChallenge(codeVerifier: String, algorithm: String): String {
         return if (algorithm == "S256") {
             val bytes = codeVerifier.toByteArray(charset("US-ASCII"))
@@ -28,6 +42,11 @@ class PkceUtil {
         }
     }
 
+    /**
+     * utility function to get algorithm for generating code challenge
+     *
+     * @return code challenge method as a string
+     */
     fun getCodeChallengeMethod(): String {
         return try {
             MessageDigest.getInstance("SHA-256")

@@ -467,7 +467,7 @@ object DAuth {
      * Wrapper function to fetch jwks from jwt for java consumers
      *
      * @param authorizationRequest AuthorizationRequest
-     * @param idToken string id for a user obtained from the auth token
+     * @param idToken id token that is decoded as jwt after verification
      * @param fetchJwtListener ResultListener<jwt>
      */
     fun fetchFromJwt(
@@ -485,10 +485,10 @@ object DAuth {
 
 
     /**
-     * Fetches jwks from jwt
+     * Fetches jwt after verifying with jwks
      *
      * @param authorizationRequest AuthorizationRequest
-     * @param idToken string id for a user obtained from the auth token
+     * @param idToken id token that is decoded as jwt after verification
      * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      * @param onSuccess Lambda function called after successfully fetching jwt taking [jwt] as member and returns unit
      */
@@ -524,7 +524,13 @@ object DAuth {
     }
 
     /**
-     * Verifies when openid scope is given to
+     * verifies the id token with JWKS and decodes the id token as jwt
+     *
+     * @param authorizationRequest Authorization
+     * @param jwks JSON web key set used to verify id token
+     * @param idToken id token that is decoded as jwt after verification
+     * @param onSuccess lambda function called after successful decoding of jwt from id token taking [jwt] as a parameter and returns unit
+     * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      */
     private fun verifyOpenIdToken(
         authorizationRequest: AuthorizationRequest,
