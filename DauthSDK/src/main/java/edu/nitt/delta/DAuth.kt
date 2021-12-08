@@ -269,8 +269,10 @@ object DAuth {
         onSuccess: (Token) -> Unit
     ) {
         var requestAsMap :Map<String,String> = request.toMap()
-        if(codeVerifier != null)
-            requestAsMap.plus(Pair("code_verifier", codeVerifier))
+        if(codeVerifier != null) {
+            requestAsMap = requestAsMap.plus(Pair("code_verifier", codeVerifier!!))
+            requestAsMap = requestAsMap.minus("client_secret")
+        }
         RetrofitInstance.api.getToken(requestAsMap).enqueue(object : Callback<Token> {
             override fun onResponse(call: Call<Token>, response: Response<Token>) {
                 if (!response.isSuccessful) {

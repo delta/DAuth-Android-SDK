@@ -44,7 +44,7 @@ public class MainActivity extends AppCompatActivity {
                                 "1ww12",
                                 scopes,
                                 "ncsasd",
-                                false),
+                                true),
                         new ResultListener<Result>() {
                             @Override
                             public void onSuccess(@NonNull Result result) {
