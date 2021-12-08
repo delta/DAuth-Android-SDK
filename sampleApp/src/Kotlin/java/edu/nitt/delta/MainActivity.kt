@@ -10,6 +10,9 @@ import edu.nitt.delta.models.Result
 import edu.nitt.delta.models.Scope
 import edu.nitt.delta.models.User
 
+/**
+ * Sample activity in Kotlin to show the use of DAuth sign in
+ */
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)

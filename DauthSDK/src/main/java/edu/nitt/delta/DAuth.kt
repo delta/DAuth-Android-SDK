@@ -23,8 +23,15 @@ import retrofit2.Callback
 import retrofit2.Response
 import java.util.*
 
+/**
+ * Main DAuth object whose instance is to be created to make use of DAuth sign in functionalities
+ */
 object DAuth {
 
+    /**
+     * currentUser [User] that stores the details of current logged user
+     * clientCreds [ClientCredentials] storing the credentials obtained after client registration in auth.delta.nitt.edu
+     */
     private var currentUser: User? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
@@ -32,6 +39,13 @@ object DAuth {
         BuildConfig.CLIENT_SECRET
     )
 
+    /**
+     * Wrapper function for sign-in functionality for java consumer
+     *
+     * @param activity Activity
+     * @param authorizationRequest AuthorizationRequest
+     * @param signInListener ResultListener<Result>
+     */
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
@@ -45,6 +59,14 @@ object DAuth {
         )
     }
 
+    /**
+     * Signs the user in
+     *
+     * @param activity Activity
+     * @param authorizationRequest AuthorizationRequest
+     * @param onSuccess Lambda Function that is called on successfull login taking Result as member and returns unit
+     * @param onFailure Lambda Function that is called on failure taking Exception as member and returns unit
+     */
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
@@ -107,6 +129,13 @@ object DAuth {
         )
     }
 
+    /**
+     * Wrapper function to request authorization for java consumers
+     *
+     * @param activity Activity
+     * @param authorizationRequest AuthorizationRequest
+     * @param authorizationListener ResultListener<AuthorizationResponse>
+     */
     fun requestAuthorization(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
@@ -124,7 +153,14 @@ object DAuth {
         )
     }
 
-    // to request for authorization use authorizationRequest members as query parameters
+    /**
+     * Requests authorization for the user to log in
+     *
+     * @param activity Activity
+     * @param authorizationRequest AuthorizationRequest
+     * @param onFailure Lambda function called on failure taking AuthorizationErrorType as member and returns unit
+     * @param onSuccess Lambda function called on successful authorization taking AuthorizationResponse as member and returns unit
+     */
     fun requestAuthorization(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
@@ -190,6 +226,12 @@ object DAuth {
         )
     }
 
+    /**
+     * Wrapper function to fetch the auth token for java consumers
+     *
+     * @param request TokenRequest
+     * @param fetchTokenListener ResultListener<Token>
+     */
     fun fetchToken(
         request: TokenRequest,
         fetchTokenListener: ResultListener<Token>
@@ -201,7 +243,13 @@ object DAuth {
         )
     }
 
-    //to request token use tokenRequest members as query parameters
+    /**
+     * Fetches the auth token
+     *
+     * @param request TokenRequest
+     * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
+     * @param onSuccess Lambda function called after fetching token successfully taking [Token] as member and returns unit
+     */
     fun fetchToken(
         request: TokenRequest,
         onFailure: (Exception) -> Unit,
@@ -222,6 +270,12 @@ object DAuth {
         })
     }
 
+    /**
+     * Wrapper function for fetching details of the user for java consumers
+     *
+     * @param accessToken string id for a user obtained from the auth token
+     * @param fetchUserDetailsListener ResultListener<User>
+     */
     fun fetchUserDetails(
         accessToken: String,
         fetchUserDetailsListener: ResultListener<User>
@@ -233,6 +287,13 @@ object DAuth {
         )
     }
 
+    /**
+     * Fetches the details of the user
+     *
+     * @param accessToken string id for a user obtained from the auth Token
+     * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
+     * @param onSuccess Lambda function called after fetching token successfully taking [User] as member and returns unit
+     */
     fun fetchUserDetails(
         accessToken: String,
         onFailure: (Exception) -> Unit,
@@ -253,8 +314,21 @@ object DAuth {
         })
     }
 
+    /**
+     * Returns the current logged in user
+     *
+     * @return [User]
+     */
     fun getCurrentUser(): User? = currentUser
 
+    /**
+     * Wrapper function for selecting account
+     *
+     * @param activity Activity
+     * @param onFailure Lambda function called after failure
+     * @param onUserDismiss Lambda function called if user dismissed the process
+     * @param onSuccess Lambda function called after successfully selectiong account taking cookie[String] as member and returns unit
+     */
     private fun selectAccount(
         activity: Activity,
         onFailure: () -> Unit,
@@ -311,6 +385,15 @@ object DAuth {
         )
     }
 
+    /**
+     * Selects account from Account Manager in android settings
+     *
+     * @param activity Activity
+     * @param onCreateNewAccount Lambda function to create a new account
+     * @param onUserDismiss Lambda function called when user dismisses the process
+     * @param onSelect Lambda function called on selecting an account taking cookie[String] as member and returns unit
+     * @param onFailure Lambda function called after failure
+     */
     private fun selectAccountFromAccountManager(
         activity: Activity,
         onCreateNewAccount: () -> Unit,
@@ -362,6 +445,13 @@ object DAuth {
         alertBuilder.create().show()
     }
 
+    /**
+     * Wrapper function to fetch jwks from jwt for java consumers
+     *
+     * @param authorizationRequest AuthorizationRequest
+     * @param idToken string id for a user obtained from the auth token
+     * @param fetchJwtListener ResultListener<jwt>
+     */
     fun fetchFromJwt(
         authorizationRequest: AuthorizationRequest,
         idToken: String,
@@ -375,6 +465,15 @@ object DAuth {
         )
     }
 
+
+    /**
+     * Fetches jwks from jwt
+     *
+     * @param authorizationRequest AuthorizationRequest
+     * @param idToken string id for a user obtained from the auth token
+     * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
+     * @param onSuccess Lambda function called after successfully fetching jwt taking [jwt] as member and returns unit
+     */
     fun fetchFromJwt(
         authorizationRequest: AuthorizationRequest,
         idToken: String,
@@ -406,6 +505,9 @@ object DAuth {
 
     }
 
+    /**
+     * Verifies when openid scope is given to
+     */
     private fun verifyOpenIdToken(
         authorizationRequest: AuthorizationRequest,
         jwks: jwks,
