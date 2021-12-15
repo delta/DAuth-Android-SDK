@@ -82,6 +82,7 @@ object DAuth {
             onSuccess = { authorizationResponse ->
                 if (authorizationResponse.state == authorizationRequest.state) {
                     fetchToken(
+                        authorizationRequest,
                         TokenRequest(
                             client_id = clientCreds.clientId,
                             client_secret = clientCreds.clientSecret,
@@ -242,14 +243,17 @@ object DAuth {
     /**
      * Wrapper function to fetch the auth token for java consumers
      *
+     * @param authorizationRequest AuthorizationRequest
      * @param request TokenRequest
      * @param fetchTokenListener ResultListener<Token>
      */
     fun fetchToken(
+        authorizationRequest: AuthorizationRequest,
         request: TokenRequest,
         fetchTokenListener: ResultListener<Token>
     ) {
         fetchToken(
+            authorizationRequest,
             request,
             onFailure = { exception -> fetchTokenListener.onFailure(exception) },
             onSuccess = { token -> fetchTokenListener.onSuccess(token) }
@@ -259,17 +263,19 @@ object DAuth {
     /**
      * Fetches the auth token
      *
+     * @param authorizationRequest AuthorizationRequest
      * @param request TokenRequest
      * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      * @param onSuccess Lambda function called after fetching token successfully taking [Token] as member and returns unit
      */
     fun fetchToken(
+        authorizationRequest: AuthorizationRequest,
         request: TokenRequest,
         onFailure: (Exception) -> Unit,
         onSuccess: (Token) -> Unit
     ) {
         var requestAsMap :Map<String,String> = request.toMap()
-        if(codeVerifier != null) {
+        if(authorizationRequest.isPkceEnabled) {
             requestAsMap = requestAsMap.plus(Pair("code_verifier", codeVerifier!!))
             requestAsMap = requestAsMap.minus("client_secret")
         }
