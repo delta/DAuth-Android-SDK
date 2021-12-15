@@ -13,6 +13,7 @@ import edu.nitt.delta.constants.ErrorMessageConstants
 import edu.nitt.delta.constants.WebViewConstants.BaseAuthority
 import edu.nitt.delta.constants.WebViewConstants.BaseUrl
 import edu.nitt.delta.constants.WebViewConstants.Scheme
+import edu.nitt.delta.helpers.PkceUtil
 import edu.nitt.delta.helpers.isNetworkAvailable
 import edu.nitt.delta.helpers.openWebView
 import edu.nitt.delta.helpers.toMap
@@ -33,6 +34,7 @@ object DAuth {
      * clientCreds [ClientCredentials] storing the credentials obtained after client registration in auth.delta.nitt.edu
      */
     private var currentUser: User? = null
+    private var codeVerifier:String? = null
     private val clientCreds: ClientCredentials = ClientCredentials(
         BuildConfig.CLIENT_ID,
         BuildConfig.REDIRECT_URI,
@@ -80,6 +82,7 @@ object DAuth {
             onSuccess = { authorizationResponse ->
                 if (authorizationResponse.state == authorizationRequest.state) {
                     fetchToken(
+                        authorizationRequest,
                         TokenRequest(
                             client_id = clientCreds.clientId,
                             client_secret = clientCreds.clientSecret,
@@ -175,7 +178,8 @@ object DAuth {
             onFailure = { onFailure(AuthorizationErrorType.InternalError) },
             onUserDismiss = { onFailure(AuthorizationErrorType.UserDismissed) },
             onSuccess = { cookie ->
-                val uri: Uri = Uri.Builder()
+                val pkceUtil =PkceUtil()
+                val uriBuilder = Uri.Builder()
                     .scheme(Scheme)
                     .authority(BaseAuthority)
                     .appendPath("authorize")
@@ -189,10 +193,20 @@ object DAuth {
                     .appendQueryParameter("state", authorizationRequest.state)
                     .appendQueryParameter("scope", Scope.combineScopes(authorizationRequest.scopes))
                     .appendQueryParameter("nonce", authorizationRequest.nonce)
-                    .build()
+                if(authorizationRequest.isPkceEnabled){
+                    try {
+                        codeVerifier = pkceUtil.generateCodeVerifier()
+                        uriBuilder.appendQueryParameter("code_challenge",pkceUtil.generateCodeChallenge(
+                            codeVerifier!!,pkceUtil.getCodeChallengeMethod()))
+                        uriBuilder.appendQueryParameter("code_challenge_method",pkceUtil.getCodeChallengeMethod())
+                    }catch (e: Exception){
+                        onFailure(AuthorizationErrorType.UnableToGenerateCodeVerifier)
+                    }
+
+                }
                 val alertDialog = openWebView(
                     activity,
-                    uri,
+                    uriBuilder.build(),
                     cookie,
                     onFailure = { onFailure(AuthorizationErrorType.ServerDownError) }
                 ) { url ->
@@ -229,14 +243,17 @@ object DAuth {
     /**
      * Wrapper function to fetch the auth token for java consumers
      *
+     * @param authorizationRequest AuthorizationRequest
      * @param request TokenRequest
      * @param fetchTokenListener ResultListener<Token>
      */
     fun fetchToken(
+        authorizationRequest: AuthorizationRequest,
         request: TokenRequest,
         fetchTokenListener: ResultListener<Token>
     ) {
         fetchToken(
+            authorizationRequest,
             request,
             onFailure = { exception -> fetchTokenListener.onFailure(exception) },
             onSuccess = { token -> fetchTokenListener.onSuccess(token) }
@@ -246,16 +263,23 @@ object DAuth {
     /**
      * Fetches the auth token
      *
+     * @param authorizationRequest AuthorizationRequest
      * @param request TokenRequest
      * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      * @param onSuccess Lambda function called after fetching token successfully taking [Token] as member and returns unit
      */
     fun fetchToken(
+        authorizationRequest: AuthorizationRequest,
         request: TokenRequest,
         onFailure: (Exception) -> Unit,
         onSuccess: (Token) -> Unit
     ) {
-        RetrofitInstance.api.getToken(request.toMap()).enqueue(object : Callback<Token> {
+        var requestAsMap :Map<String,String> = request.toMap()
+        if(authorizationRequest.isPkceEnabled) {
+            requestAsMap = requestAsMap.plus(Pair("code_verifier", codeVerifier!!))
+            requestAsMap = requestAsMap.minus("client_secret")
+        }
+        RetrofitInstance.api.getToken(requestAsMap).enqueue(object : Callback<Token> {
             override fun onResponse(call: Call<Token>, response: Response<Token>) {
                 if (!response.isSuccessful) {
                     onFailure(Exception(response.code().toString()))
@@ -449,7 +473,7 @@ object DAuth {
      * Wrapper function to fetch jwks from jwt for java consumers
      *
      * @param authorizationRequest AuthorizationRequest
-     * @param idToken string id for a user obtained from the auth token
+     * @param idToken id token that is decoded as jwt after verification
      * @param fetchJwtListener ResultListener<jwt>
      */
     fun fetchFromJwt(
@@ -467,10 +491,10 @@ object DAuth {
 
 
     /**
-     * Fetches jwks from jwt
+     * Fetches jwt after verifying with jwks
      *
      * @param authorizationRequest AuthorizationRequest
-     * @param idToken string id for a user obtained from the auth token
+     * @param idToken id token that is decoded as jwt after verification
      * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      * @param onSuccess Lambda function called after successfully fetching jwt taking [jwt] as member and returns unit
      */
@@ -506,7 +530,13 @@ object DAuth {
     }
 
     /**
-     * Verifies when openid scope is given to
+     * verifies the id token with JWKS and decodes the id token as jwt
+     *
+     * @param authorizationRequest Authorization
+     * @param jwks JSON web key set used to verify id token
+     * @param idToken id token that is decoded as jwt after verification
+     * @param onSuccess lambda function called after successful decoding of jwt from id token taking [jwt] as a parameter and returns unit
+     * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      */
     private fun verifyOpenIdToken(
         authorizationRequest: AuthorizationRequest,
