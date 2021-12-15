@@ -3,7 +3,7 @@ plugins {
     id 'kotlin-android'
 }
 
-def clientCreds = rootProject.file("client-creds.json")
+def clientCreds = rootProject.file("dauth-client-creds.json")
 def parsedJson = new groovy.json.JsonSlurper().parseText(clientCreds.text)
 
 android {

@@ -12,7 +12,7 @@ This library is used for authenticating users and fetching authorization code / 
   implementation ""
  ```
 2. Register at http://auth.delta.nitt.edu/ to get `client id` , `client secret`, `redirectURI`
-3. Now add these credentials to your `client-creds.json` like this :
+3. Now add these credentials to your `dauth-client-creds.json` like this :
 ```json
 {
   "client_id": "CLIENT_ID",
