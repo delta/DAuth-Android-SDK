@@ -7,6 +7,7 @@ import android.accounts.AccountManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.constants.ErrorCodeConstants
 import edu.nitt.delta.constants.ErrorMessageConstants
@@ -83,6 +84,7 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
             returnAuthToken(account, response)
             return Bundle()
         } else {
+            Log.d("Hello","Heelo")
             if (account == null) {
                 response?.onError(ErrorCodeConstants.InternalError, ErrorMessageConstants.NoAccount)
                 return Bundle()

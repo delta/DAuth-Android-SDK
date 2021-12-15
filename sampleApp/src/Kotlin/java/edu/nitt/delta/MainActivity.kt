@@ -18,6 +18,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
         val signInButton: DeltaButton = findViewById(R.id.sign_in_button)
+
         signInButton.setOnClickListener {
             DAuth.signIn(
                 activity = this,
@@ -28,6 +29,7 @@ class MainActivity : AppCompatActivity() {
                     listOf(Scope.OpenID,Scope.Profile,Scope.Email,Scope.User),
                     "ncsasd"
                 ),
+                isPkceEnabled = true,
                 onSuccess = { result: Result ->
                         println("Success: $result")
                 },

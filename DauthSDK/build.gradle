@@ -18,9 +18,9 @@ android {
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         consumerProguardFiles "consumer-rules.pro"
 
-        buildConfigField("String", "CLIENT_ID", "\"${parsedJson.client_id}\"")
-        buildConfigField("String", "REDIRECT_URI", "\"${parsedJson.redirect_uri}\"")
-        buildConfigField("String", "CLIENT_SECRET", "\"${parsedJson.client_secret}\"")
+        buildConfigField("String", "DAUTH_CLIENT_ID", "\"${parsedJson.client_id}\"")
+        buildConfigField("String", "DAUTH_REDIRECT_URI", "\"${parsedJson.redirect_uri}\"")
+        buildConfigField("String", "DAUTH_CLIENT_SECRET", "\"${parsedJson.client_secret}\"")
     }
 
     buildTypes {
