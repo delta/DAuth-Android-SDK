@@ -7,6 +7,7 @@ import android.accounts.AccountManager
 import android.content.Context
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import edu.nitt.delta.api.RetrofitInstance
 import edu.nitt.delta.constants.ErrorCodeConstants
 import edu.nitt.delta.constants.ErrorMessageConstants

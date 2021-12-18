@@ -34,11 +34,10 @@ object DAuth {
      * clientCreds [ClientCredentials] storing the credentials obtained after client registration in auth.delta.nitt.edu
      */
     private var currentUser: User? = null
-    private var codeVerifier:String? = null
-    private val clientCreds: ClientCredentials = ClientCredentials(
-        BuildConfig.CLIENT_ID,
-        BuildConfig.REDIRECT_URI,
-        BuildConfig.CLIENT_SECRET
+    private val clientCredentials: ClientCredentials = ClientCredentials(
+        BuildConfig.DAUTH_CLIENT_ID,
+        BuildConfig.DAUTH_REDIRECT_URI,
+        BuildConfig.DAUTH_CLIENT_SECRET
     )
 
     /**
@@ -46,16 +45,19 @@ object DAuth {
      *
      * @param activity Activity
      * @param authorizationRequest AuthorizationRequest
+     * @param isPkceEnabled Boolean which tells whether to choose pkce workflow
      * @param signInListener ResultListener<Result>
      */
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
+        isPkceEnabled: Boolean,
         signInListener: ResultListener<Result>
     ) {
         signIn(
             activity,
             authorizationRequest,
+            isPkceEnabled,
             onSuccess = { result -> signInListener.onSuccess(result) },
             onFailure = { exception -> signInListener.onFailure(exception) }
         )
@@ -66,30 +68,31 @@ object DAuth {
      *
      * @param activity Activity
      * @param authorizationRequest AuthorizationRequest
+     * @param isPkceEnabled Boolean which tells whether to choose pkce workflow
      * @param onSuccess Lambda Function that is called on successfull login taking Result as member and returns unit
      * @param onFailure Lambda Function that is called on failure taking Exception as member and returns unit
      */
     fun signIn(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
+        isPkceEnabled: Boolean,
         onSuccess: (Result) -> Unit,
         onFailure: (Exception) -> Unit
     ) {
         requestAuthorization(
             activity,
             authorizationRequest,
+            isPkceEnabled,
             onFailure = { errorState -> onFailure(Exception(errorState.toString())) },
             onSuccess = { authorizationResponse ->
                 if (authorizationResponse.state == authorizationRequest.state) {
                     fetchToken(
-                        authorizationRequest,
                         TokenRequest(
-                            client_id = clientCreds.clientId,
-                            client_secret = clientCreds.clientSecret,
                             grant_type = authorizationRequest.grant_type.toString(),
                             code = authorizationResponse.authorizationCode,
-                            redirect_uri = clientCreds.redirectUri
+                            code_verifier = authorizationResponse.codeVerifier
                         ),
+                        isPkceEnabled,
                         onFailure = { e -> onFailure(e) },
                         onSuccess = { token ->
                             if (authorizationRequest.scopes.contains(Scope.User)) {
@@ -97,7 +100,6 @@ object DAuth {
                                     token.access_token,
                                     onFailure = { e -> onFailure(e) }
                                 ) { user ->
-                                    currentUser = user
                                     if(authorizationRequest.scopes.contains(Scope.OpenID)){
                                         fetchFromJwt(
                                             authorizationRequest,
@@ -137,16 +139,19 @@ object DAuth {
      *
      * @param activity Activity
      * @param authorizationRequest AuthorizationRequest
+     * @param isPkceEnabled Boolean which tells whether to choose pkce workflow
      * @param authorizationListener ResultListener<AuthorizationResponse>
      */
     fun requestAuthorization(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
+        isPkceEnabled: Boolean,
         authorizationListener: ResultListener<AuthorizationResponse>
     ) {
         requestAuthorization(
             activity,
             authorizationRequest,
+            isPkceEnabled,
             onFailure = { authorizationErrorType -> authorizationListener.onFailure(Exception("$authorizationErrorType")) },
             onSuccess = { authorizationResponse ->
                 authorizationListener.onSuccess(
@@ -161,12 +166,14 @@ object DAuth {
      *
      * @param activity Activity
      * @param authorizationRequest AuthorizationRequest
+     * @param isPkceEnabled Boolean which tells whether to choose pkce workflow
      * @param onFailure Lambda function called on failure taking AuthorizationErrorType as member and returns unit
      * @param onSuccess Lambda function called on successful authorization taking AuthorizationResponse as member and returns unit
      */
     fun requestAuthorization(
         activity: Activity,
         authorizationRequest: AuthorizationRequest,
+        isPkceEnabled: Boolean,
         onFailure: (AuthorizationErrorType) -> Unit,
         onSuccess: (AuthorizationResponse) -> Unit
     ) {
@@ -183,21 +190,19 @@ object DAuth {
                     .scheme(Scheme)
                     .authority(BaseAuthority)
                     .appendPath("authorize")
-                    .appendQueryParameter("client_id", clientCreds.clientId)
-                    .appendQueryParameter("redirect_uri", clientCreds.redirectUri)
-                    .appendQueryParameter(
-                        "response_type",
-                        authorizationRequest.response_type.toString()
-                    )
+                    .appendQueryParameter("client_id", clientCredentials.clientId)
+                    .appendQueryParameter("redirect_uri", clientCredentials.redirectUri)
+                    .appendQueryParameter("response_type", authorizationRequest.response_type.toString())
                     .appendQueryParameter("grant_type", authorizationRequest.grant_type.toString())
                     .appendQueryParameter("state", authorizationRequest.state)
                     .appendQueryParameter("scope", Scope.combineScopes(authorizationRequest.scopes))
                     .appendQueryParameter("nonce", authorizationRequest.nonce)
-                if(authorizationRequest.isPkceEnabled){
+                var codeVerifier: String? = ""
+                if(isPkceEnabled){
                     try {
                         codeVerifier = pkceUtil.generateCodeVerifier()
                         uriBuilder.appendQueryParameter("code_challenge",pkceUtil.generateCodeChallenge(
-                            codeVerifier!!,pkceUtil.getCodeChallengeMethod()))
+                            codeVerifier,pkceUtil.getCodeChallengeMethod()))
                         uriBuilder.appendQueryParameter("code_challenge_method",pkceUtil.getCodeChallengeMethod())
                     }catch (e: Exception){
                         onFailure(AuthorizationErrorType.UnableToGenerateCodeVerifier)
@@ -211,13 +216,15 @@ object DAuth {
                     onFailure = { onFailure(AuthorizationErrorType.ServerDownError) }
                 ) { url ->
                     val uri: Uri = Uri.parse(url)
-                    if (url.startsWith(clientCreds.redirectUri)) {
+                    if (url.startsWith(clientCredentials.redirectUri)) {
                         if (uri.query.isNullOrBlank() or uri.query.isNullOrEmpty()) {
                             onFailure(AuthorizationErrorType.AuthorizationDenied)
                         } else {
                             val authorizationResponse = AuthorizationResponse(
                                 uri.getQueryParameter("code") ?: "",
-                                uri.getQueryParameter("state") ?: ""
+                                uri.getQueryParameter("state") ?: "",
+                                codeVerifier ?: "",
+                                isPkceEnabled
                             )
                             onSuccess(authorizationResponse)
                         }
@@ -243,18 +250,18 @@ object DAuth {
     /**
      * Wrapper function to fetch the auth token for java consumers
      *
-     * @param authorizationRequest AuthorizationRequest
      * @param request TokenRequest
+     * @param isPkceEnabled Boolean which tells whether to choose pkce workflow
      * @param fetchTokenListener ResultListener<Token>
      */
     fun fetchToken(
-        authorizationRequest: AuthorizationRequest,
         request: TokenRequest,
+        isPkceEnabled: Boolean,
         fetchTokenListener: ResultListener<Token>
     ) {
         fetchToken(
-            authorizationRequest,
             request,
+            isPkceEnabled,
             onFailure = { exception -> fetchTokenListener.onFailure(exception) },
             onSuccess = { token -> fetchTokenListener.onSuccess(token) }
         )
@@ -263,21 +270,23 @@ object DAuth {
     /**
      * Fetches the auth token
      *
-     * @param authorizationRequest AuthorizationRequest
      * @param request TokenRequest
+     * @param isPkceEnabled Boolean which tells whether to choose pkce workflow
      * @param onFailure Lambda function called on failure taking [Exception] as member and returns unit
      * @param onSuccess Lambda function called after fetching token successfully taking [Token] as member and returns unit
      */
     fun fetchToken(
-        authorizationRequest: AuthorizationRequest,
         request: TokenRequest,
+        isPkceEnabled: Boolean,
         onFailure: (Exception) -> Unit,
         onSuccess: (Token) -> Unit
     ) {
         var requestAsMap :Map<String,String> = request.toMap()
-        if(authorizationRequest.isPkceEnabled) {
-            requestAsMap = requestAsMap.plus(Pair("code_verifier", codeVerifier!!))
-            requestAsMap = requestAsMap.minus("client_secret")
+        requestAsMap = requestAsMap.plus(Pair("client_id", clientCredentials.clientId))
+        requestAsMap = requestAsMap.plus(Pair("redirect_uri", clientCredentials.redirectUri))
+        if(!isPkceEnabled){
+            requestAsMap = requestAsMap.plus(Pair("client_secret", clientCredentials.clientSecret))
+            requestAsMap = requestAsMap.minus("code_verifier")
         }
         RetrofitInstance.api.getToken(requestAsMap).enqueue(object : Callback<Token> {
             override fun onResponse(call: Call<Token>, response: Response<Token>) {
@@ -329,7 +338,10 @@ object DAuth {
                     onFailure(Exception(response.code().toString()))
                     return
                 }
-                response.body()?.let { onSuccess(it) }
+                response.body()?.let {
+                    currentUser = it
+                    onSuccess(it)
+                }
             }
 
             override fun onFailure(call: Call<User>, t: Throwable) {
