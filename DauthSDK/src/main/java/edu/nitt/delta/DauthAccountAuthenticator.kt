@@ -84,7 +84,6 @@ class DauthAccountAuthenticator(context: Context) : AbstractAccountAuthenticator
             returnAuthToken(account, response)
             return Bundle()
         } else {
-            Log.d("Hello","Heelo")
             if (account == null) {
                 response?.onError(ErrorCodeConstants.InternalError, ErrorMessageConstants.NoAccount)
                 return Bundle()
